@@ -1,0 +1,21 @@
+flowchart TD
+    subgraph Client Layer
+        A[End User Wallet / DApp UI] -->|1. Execute Qualified First Move| B(Solana Network - Target Protocol)
+        A -->|2. Request Proof / Claim Payload| C[Grow Rewards Gateway / Relayer]
+    end
+
+    subgraph Off-Chain Enterprise Relayer & Attribution Engine
+        C -->|3. Query Transaction Signature| D[Solana RPC / Geyser Node]
+        D -->|4. Confirm Execution & Thresholds| C
+        C -->|5. Sign Action Attestation with Ed25519 Key| C
+        C -->|6. Trigger Growth Notification Event| E[Resend Email API]
+        C -->|7. Post Metrics to Ops Channel| F[Slack/Discord Enterprise Webhook]
+    end
+
+    subgraph Solana Program (Anchor Engine)
+        C -->|8. Submit 'claim_first_move' IX + Proof| G[GrowRewards Program]
+        G -->|9. Validate PDA & Anti-Replay Bitmask| H[(UserTracker PDA)]
+        G -->|10. Check Epoch Limit & Decay Curve| I[(Campaign PDA)]
+        G -->|11. CPI Token Transfer via Seeds| J[(Reward Vault PDA)]
+        J -->|12. Transfer SPL Tokens| K[User Destination ATA]
+    end

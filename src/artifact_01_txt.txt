@@ -1,0 +1,3 @@
+[User Connects] ──► [Executes Qualified Action] ──► [Ed25519 Proof / CPI Verification] ──► [Instant SPL Payout + Multiplier]
+                                                                                                  │
+                                                                                    [Enterprise Webhook / Resend CRM]

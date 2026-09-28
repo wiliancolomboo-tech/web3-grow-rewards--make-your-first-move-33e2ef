@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  grow-agent:
+    build: .
+    container_name: grow-rewards-agent
+    restart: unless-stopped
+    environment:
+      - SOLANA_RPC_URL=https://api.devnet.solana.com
+      - PROGRAM_ID=GrwRew1111111111111111111111111111111111111
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - OPS_WEBHOOK_URL=${OPS_WEBHOOK_URL}
+    volumes:
+      - ./keys:/usr/src/app/keys:ro
+    command: ["--help"]
