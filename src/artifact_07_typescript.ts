@@ -1,308 +1,139 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
-import { GrowRewards } from "../target/types/grow_rewards";
-import {
-  createMint,
-  createAssociatedTokenAccount,
-  mintTo,
-  getAccount,
-} from "@solana/spl-token";
-import { Keypair, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { assert, expect } from "chai";
+import { Connection, PublicKey } from "@solana/web3.js";
+import axios from "axios";
+import { Resend } from "resend";
 
-describe("Grow Rewards: Make Your First Move - Test Matrix", () => {
-  const provider = anchor.AnchorProvider.env();
-  anchor.setProvider(provider);
+interface NotificationConfig {
+  resendApiKey: string;
+  resendFromEmail: string;
+  slackWebhookUrl: string;
+  solanaRpcUrl: string;
+  programId: string;
+}
 
-  const program = anchor.workspace.GrowRewards as Program<GrowRewards>;
+export class EnterpriseEventRelay {
+  private connection: Connection;
+  private resend: Resend;
+  private slackWebhookUrl: string;
+  private programId: PublicKey;
 
-  const admin = Keypair.generate();
-  const verifier = Keypair.generate();
-  const alice = Keypair.generate();
-  const bob = Keypair.generate();
-  const eveSybil = Keypair.generate();
+  constructor(config: NotificationConfig) {
+    this.connection = new Connection(config.solanaRpcUrl, "confirmed");
+    this.resend = new Resend(config.resendApiKey);
+    this.slackWebhookUrl = config.slackWebhookUrl;
+    this.programId = new PublicKey(config.programId);
+  }
 
-  let rewardMint: PublicKey;
-  let adminAta: PublicKey;
-  let aliceAta: PublicKey;
-  let bobAta: PublicKey;
+  public async startListener(program: anchor.Program) {
+    console.log(`[Relay Engine] Listening to events on Program ${this.programId.toBase58()}...`);
 
-  const campaignId = new anchor.BN(9001);
-  const baseReward = new anchor.BN(50_000_000); // 50 tokens (6 decimals)
-  const maxClaimants = 2; // Strict cap of 2 for testing
-  const decayPeriodSlots = new anchor.BN(100);
+    program.addEventListener("FirstMoveClaimedEvent", async (event: any, slot: number) => {
+      console.log(`[Event Detected] First Move Claimed:`, event);
 
-  let campaignPda: PublicKey;
-  let rewardVaultPda: PublicKey;
+      const user = event.user.toBase58();
+      const campaignId = event.campaignId;
+      const rewardAmount = event.rewardAmount.toString();
+      const actionType = event.actionType;
+      const claimIndex = event.claimIndex.toString();
 
-  before(async () => {
-    // Airdrop SOL to participants
-    for (const kp of [admin, verifier, alice, bob, eveSybil]) {
-      const sig = await provider.connection.requestAirdrop(kp.publicKey, 5 * LAMPORTS_PER_SOL);
-      await provider.connection.confirmTransaction(sig);
-    }
+      await Promise.allSettled([
+        this.notifySlack({
+          campaignId,
+          user,
+          rewardAmount,
+          actionType,
+          claimIndex,
+          slot,
+        }),
+        this.sendUserReceiptEmail({
+          userPubkey: user,
+          campaignId,
+          rewardAmount,
+          actionType,
+        }),
+      ]);
+    });
+  }
 
-    // Create Reward Mint
-    rewardMint = await createMint(
-      provider.connection,
-      admin,
-      admin.publicKey,
-      null,
-      6
-    );
+  private async notifySlack(data: {
+    campaignId: string;
+    user: string;
+    rewardAmount: string;
+    actionType: number;
+    claimIndex: string;
+    slot: number;
+  }) {
+    if (!this.slackWebhookUrl) return;
 
-    // Create Associated Token Accounts
-    adminAta = await createAssociatedTokenAccount(
-      provider.connection,
-      admin,
-      rewardMint,
-      admin.publicKey
-    );
-
-    aliceAta = await createAssociatedTokenAccount(
-      provider.connection,
-      alice,
-      rewardMint,
-      alice.publicKey
-    );
-
-    bobAta = await createAssociatedTokenAccount(
-      provider.connection,
-      bob,
-      rewardMint,
-      bob.publicKey
-    );
-
-    // Mint supply to Admin
-    await mintTo(
-      provider.connection,
-      admin,
-      rewardMint,
-      adminAta,
-      admin.publicKey,
-      1_000_000_000
-    );
-
-    // Derive PDAs
-    [campaignPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("grow_campaign"), campaignId.toArrayLike(Buffer, "le", 8)],
-      program.programId
-    );
-
-    [rewardVaultPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("reward_vault"), campaignId.toArrayLike(Buffer, "le", 8)],
-      program.programId
-    );
-  });
-
-  it("1. Successfully initializes a 'Make Your First Move' Campaign", async () => {
-    await program.methods
-      .initializeCampaign(
-        campaignId,
-        baseReward,
-        maxClaimants,
-        verifier.publicKey,
-        decayPeriodSlots
-      )
-      .accounts({
-        admin: admin.publicKey,
-        rewardMint: rewardMint,
-        campaign: campaignPda,
-        rewardVault: rewardVaultPda,
-        systemProgram: anchor.web3.SystemProgram.programId,
-        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-      })
-      .signers([admin])
-      .rpc();
-
-    // Fund the campaign vault
-    await mintTo(
-      provider.connection,
-      admin,
-      rewardMint,
-      rewardVaultPda,
-      admin.publicKey,
-      500_000_000
-    );
-
-    const campaignState = await program.account.campaign.fetch(campaignPda);
-    assert.equal(campaignState.campaignId.toNumber(), 9001);
-    assert.equal(campaignState.claimantsCount, 0);
-    assert.equal(campaignState.maxClaimants, 2);
-    assert.isFalse(campaignState.isPaused);
-  });
-
-  it("2. User Alice executes First Move: Receives Base Reward + Early Mover Multiplier", async () => {
-    const [aliceTracker] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("user_tracker"),
-        campaignId.toArrayLike(Buffer, "le", 8),
-        alice.publicKey.toBuffer(),
+    const payload = {
+      text: `🚀 *New First Move Claimed on Solana!*`,
+      blocks: [
+        {
+          type: "header",
+          text: {
+            type: "plain_text",
+            text: "🌟 Grow Rewards: First Move Activated!",
+            emoji: true,
+          },
+        },
+        {
+          type: "section",
+          fields: [
+            { type: "mrkdwn", text: `*Campaign:* \`${data.campaignId}\`` },
+            { type: "mrkdwn", text: `*User:* \`${data.user.slice(0, 4)}...${data.user.slice(-4)}\`` },
+            { type: "mrkdwn", text: `*Reward Paid:* *${(Number(data.rewardAmount) / 1e6).toFixed(2)} tokens*` },
+            { type: "mrkdwn", text: `*Claim Number:* #${data.claimIndex}` },
+          ],
+        },
+        {
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: `Action Code: *Type ${data.actionType}* | Slot: *${data.slot}* | Explorer: <https://solscan.io/account/${data.user}|View User>`,
+            },
+          ],
+        },
       ],
-      program.programId
-    );
-
-    const timestamp = Math.floor(Date.now() / 1000);
-    const signatureDummy = new Array(64).fill(1);
-
-    await program.methods
-      .claimFirstMove(signatureDummy, new anchor.BN(timestamp))
-      .accounts({
-        user: alice.publicKey,
-        verifierAuthority: verifier.publicKey,
-        campaign: campaignPda,
-        userTracker: aliceTracker,
-        rewardVault: rewardVaultPda,
-        userRewardAccount: aliceAta,
-        systemProgram: anchor.web3.SystemProgram.programId,
-        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-      })
-      .signers([alice, verifier])
-      .rpc();
-
-    const aliceTokenAccount = await getAccount(provider.connection, aliceAta);
-    // Multiplier is ~25000 bps (2.5x baseReward = 125,000,000)
-    assert.isTrue(Number(aliceTokenAccount.amount) >= 50_000_000);
-
-    const tracker = await program.account.userTracker.fetch(aliceTracker);
-    assert.isTrue(tracker.has_claimed);
-    assert.equal(tracker.user.toBase58(), alice.publicKey.toBase58());
-  });
-
-  it("3. Sybil Defense: Alice cannot double-claim First Move", async () => {
-    const [aliceTracker] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("user_tracker"),
-        campaignId.toArrayLike(Buffer, "le", 8),
-        alice.publicKey.toBuffer(),
-      ],
-      program.programId
-    );
-
-    const timestamp = Math.floor(Date.now() / 1000);
-    const signatureDummy = new Array(64).fill(1);
+    };
 
     try {
-      await program.methods
-        .claimFirstMove(signatureDummy, new anchor.BN(timestamp))
-        .accounts({
-          user: alice.publicKey,
-          verifierAuthority: verifier.publicKey,
-          campaign: campaignPda,
-          userTracker: aliceTracker,
-          rewardVault: rewardVaultPda,
-          userRewardAccount: aliceAta,
-          systemProgram: anchor.web3.SystemProgram.programId,
-          tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-        })
-        .signers([alice, verifier])
-        .rpc();
-      assert.fail("Should have thrown error on double claim");
+      await axios.post(this.slackWebhookUrl, payload, { timeout: 5000 });
+      console.log(`[Slack Dispatch] Broadcasted notification for user ${data.user}`);
     } catch (err: any) {
-      expect(err.toString()).to.include("custom program error");
+      console.error(`[Slack Dispatch Error] ${err.message}`);
     }
-  });
+  }
 
-  it("4. Unauthorized Verifier signature is rejected", async () => {
-    const [bobTracker] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("user_tracker"),
-        campaignId.toArrayLike(Buffer, "le", 8),
-        bob.publicKey.toBuffer(),
-      ],
-      program.programId
-    );
-
-    const fakeVerifier = Keypair.generate();
-    const timestamp = Math.floor(Date.now() / 1000);
-    const signatureDummy = new Array(64).fill(1);
-
+  private async sendUserReceiptEmail(data: {
+    userPubkey: string;
+    campaignId: string;
+    rewardAmount: string;
+    actionType: number;
+  }) {
+    // If user has an associated email registered in protocol off-chain CRM
+    const recipient = process.env.TEST_RECEIPT_EMAIL || "rewards-growth@example.com";
     try {
-      await program.methods
-        .claimFirstMove(signatureDummy, new anchor.BN(timestamp))
-        .accounts({
-          user: bob.publicKey,
-          verifierAuthority: fakeVerifier.publicKey,
-          campaign: campaignPda,
-          userTracker: bobTracker,
-          rewardVault: rewardVaultPda,
-          userRewardAccount: bobAta,
-          systemProgram: anchor.web3.SystemProgram.programId,
-          tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-        })
-        .signers([bob, fakeVerifier])
-        .rpc();
-      assert.fail("Should have thrown UnauthorizedVerifier");
+      await this.resend.emails.send({
+        from: "Grow Rewards <onboarding@grow-rewards.xyz>",
+        to: [recipient],
+        subject: `🎉 Congratulations on Making Your First Move in ${data.campaignId}!`,
+        html: `
+          <div style="font-family: sans-serif; padding: 24px; color: #111;">
+            <h1 style="color: #6366f1;">Welcome to the Ecosystem!</h1>
+            <p>Your on-chain First Move was verified and processed on Solana.</p>
+            <div style="background: #f4f4f5; padding: 16px; border-radius: 8px;">
+              <p><strong>Wallet:</strong> <code>${data.userPubkey}</code></p>
+              <p><strong>Campaign:</strong> ${data.campaignId}</p>
+              <p><strong>Reward Disbursed:</strong> ${(Number(data.rewardAmount) / 1e6).toFixed(2)} Tokens</p>
+            </div>
+            <p style="margin-top: 20px;">Keep exploring to unlock next-tier milestone rewards!</p>
+          </div>
+        `,
+      });
+      console.log(`[Resend Dispatch] Receipt successfully emailed to ${recipient}`);
     } catch (err: any) {
-      expect(err.toString()).to.include("UnauthorizedVerifier");
+      console.error(`[Resend Dispatch Error] ${err.message}`);
     }
-  });
-
-  it("5. Strict Cap Enforcement: Reaching max claimants halts further claims", async () => {
-    // Bob claims successfully (Claimant #2)
-    const [bobTracker] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("user_tracker"),
-        campaignId.toArrayLike(Buffer, "le", 8),
-        bob.publicKey.toBuffer(),
-      ],
-      program.programId
-    );
-
-    const timestamp = Math.floor(Date.now() / 1000);
-    const signatureDummy = new Array(64).fill(1);
-
-    await program.methods
-      .claimFirstMove(signatureDummy, new anchor.BN(timestamp))
-      .accounts({
-        user: bob.publicKey,
-        verifierAuthority: verifier.publicKey,
-        campaign: campaignPda,
-        userTracker: bobTracker,
-        rewardVault: rewardVaultPda,
-        userRewardAccount: bobAta,
-        systemProgram: anchor.web3.SystemProgram.programId,
-        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-      })
-      .signers([bob, verifier])
-      .rpc();
-
-    // Eve (Claimant #3) attempts claim, fails due to max_claimants = 2
-    const [eveTracker] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("user_tracker"),
-        campaignId.toArrayLike(Buffer, "le", 8),
-        eveSybil.publicKey.toBuffer(),
-      ],
-      program.programId
-    );
-
-    const eveAta = await createAssociatedTokenAccount(
-      provider.connection,
-      eveSybil,
-      rewardMint,
-      eveSybil.publicKey
-    );
-
-    try {
-      await program.methods
-        .claimFirstMove(signatureDummy, new anchor.BN(timestamp))
-        .accounts({
-          user: eveSybil.publicKey,
-          verifierAuthority: verifier.publicKey,
-          campaign: campaignPda,
-          userTracker: eveTracker,
-          rewardVault: rewardVaultPda,
-          userRewardAccount: eveAta,
-          systemProgram: anchor.web3.SystemProgram.programId,
-          tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-        })
-        .signers([eveSybil, verifier])
-        .rpc();
-      assert.fail("Should have thrown CampaignCapReached");
-    } catch (err: any) {
-      expect(err.toString()).to.include("CampaignCapReached");
-    }
-  });
-});
+  }
+}

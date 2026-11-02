@@ -1,0 +1,20 @@
+🧵 1/3
+Thrilled to unveil "FirstMove" for @Solana Grow Rewards! ⚡️
+
+Onboarding in Web3 is broken: high churn, Sybil farming, and passive wallets. FirstMove solves this by binding programmatic SPL rewards directly to verifiable on-chain milestones with zero-custody PDA vaults. 
+
+🧵 2/3
+Under the hood:
+🔒 Secure Solana Anchor 0.30 Program with deterministic timelocks
+🛡️ Sybil-resistant milestone hashing
+⚡ Real-time Event Daemon notifying users via @resend & posting enterprise audit trails to Slack/Discord
+
+100% test coverage with automated invariant assertions!
+
+🧵 3/3
+Turnkey, modular, and ready to deploy for any DeFi, DePIN, or GameFi protocol looking to supercharge activation.
+
+Check out the complete repo & zero-downtime Docker orchestration 👇
+https://github.com/solana-grow/first-move-rewards
+
+#Solana #Web3 #SolanaDev #Bounty

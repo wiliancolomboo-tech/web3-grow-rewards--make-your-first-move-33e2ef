@@ -1,0 +1,22 @@
+sequenceDiagram
+    autonumber
+    actor User as User Wallet
+    participant Program as Grow Rewards Program
+    participant Vault as Vault Token Account
+    actor Admin as Protocol Admin
+    participant Listener as Event Daemon
+    participant Resend as Resend Notification API
+    participant Slack as Enterprise Slack/Discord
+
+    Admin->>Program: initialize_campaign(campaign_id, reward_amount, min_deposit)
+    Admin->>Vault: fund_campaign_vault(SPL tokens)
+    User->>Program: register_first_move(campaign_id, action_type, deposit_amount)
+    Program->>Program: Assert minimum threshold & anti-sybil state
+    Program-->>Listener: Emit Event: FirstMoveCompleted(user, campaign_id, timestamp)
+    Listener->>Slack: Post audit notification: First Move Executed
+    Listener->>Resend: Dispatch activation confirmation email
+    User->>Program: claim_reward(campaign_id)
+    Program->>Vault: CPI Transfer via Campaign PDA Signer
+    Vault-->>User: SPL Reward Transferred
+    Program-->>Listener: Emit Event: RewardClaimed(user, campaign_id, amount)
+    Listener->>Slack: Alert: Reward Claim Settled

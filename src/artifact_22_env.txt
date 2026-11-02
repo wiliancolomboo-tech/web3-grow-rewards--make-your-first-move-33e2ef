@@ -1,0 +1,8 @@
+SOLANA_RPC_URL=https://api.devnet.solana.com
+PROGRAM_ID=GrowRew1111111111111111111111111111111111111
+ORACLE_PRIVATE_KEY=[1,2,3,...]
+RESEND_API_KEY=re_live_enterprise_secret_key
+RESEND_FROM_EMAIL=rewards@growprotocol.io
+ENTERPRISE_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+TEST_RECEIVER_EMAIL=dev@sponsor.io
+PORT=8080

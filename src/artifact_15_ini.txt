@@ -1,0 +1,9 @@
+SOLANA_RPC_URL=https://api.devnet.solana.com
+SOLANA_WS_URL=wss://api.devnet.solana.com
+PROGRAM_ID=GrowRwds11111111111111111111111111111111111
+ORACLE_PRIVATE_KEY=[12,43,155,20, ...]
+RESEND_API_KEY=re_123456789_enterpriseKey
+SENDER_EMAIL=welcome@growrewards.io
+DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+CAMPAIGN_ID=101
+PORT=8080

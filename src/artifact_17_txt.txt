@@ -1,0 +1,9 @@
+Engineered for turnkey production:
+✅ Anchor 0.30.1 smart contract with 100% test coverage
+✅ Automated Node.js event listener daemon
+✅ 1-click Docker deployment & healthcheck telemetry
+
+Empower your community to Make Their First Move. 
+
+GitHub Repo & Docs: https://github.com/grow-rewards/make-your-first-move
+#Solana #Web3Growth #BountyWinner

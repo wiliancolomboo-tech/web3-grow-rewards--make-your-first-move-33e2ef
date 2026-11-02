@@ -1,0 +1,11 @@
++---------------------------------------------------------------------------------+
+| OPERATIONAL PROCEDURE: EMERGENCY RESPONSE & PARAMETER UPDATES                  |
++---------------------------------------------------------------------------------+
+| Incident Scenario            | Action Required                                  |
++------------------------------+--------------------------------------------------+
+| Bot Sybil Attack Detected    | Execute: anchor run pause --provider.cluster mnet|
+| Treasury Low Watermark (<15%)| Automated Slack Alert triggers: execute top-up   |
+|                              | spl-token transfer <MINT> <AMOUNT> <VAULT_PDA>   |
+| Key Rotation (Attestation)   | Re-initialize or invoke administrative update    |
+| RPC Degradation / Lag        | Switch agent endpoint to failover Triton/Helius  |
++---------------------------------------------------------------------------------+

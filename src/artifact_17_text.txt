@@ -1,0 +1,7 @@
+How does GrowRewards solve the First Move Paradox?
+
+🔹 PDA Identity Proof: [b"user_move", campaign, user] guarantees strictly 1 claim per wallet at the runtime layer
+🔹 Atomic Vaults: Direct SPL CPI transfers with 0 protocol custody risk
+🔹 Instant Feedback: Auto-dispatches dynamic receipts via @resend & Slack webhooks
+
+Sub-second activation for the next billion users.

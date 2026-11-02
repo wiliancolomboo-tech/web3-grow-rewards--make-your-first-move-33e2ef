@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  grow-rewards-relayer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: grow_rewards_relayer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - SOLANA_RPC_URL=https://api.devnet.solana.com
+      - PROGRAM_ID=GrwRew1111111111111111111111111111111111111
+      - RELAYER_PRIVATE_KEY_JSON=[1,2,3...] # Fill with base58/byte array
+      - DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+      - RESEND_API_KEY=re_123456789
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"

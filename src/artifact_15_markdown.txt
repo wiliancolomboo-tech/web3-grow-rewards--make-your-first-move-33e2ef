@@ -1,0 +1,20 @@
+### Production Monitoring Runbook
+1. **Liveness Probe:**
+   `curl -s http://localhost:8080/healthz | jq .`
+   Expected response: `{"status":"healthy","timestamp":<EPOCH_MS>}`
+
+2. **Metrics & Throughput Inspection:**
+   `curl -s http://localhost:8080/metrics | jq .`
+   Returns real-time counters:
+   - `firstMovesObserved`
+   - `emailsSent`
+   - `slackAlertsSent`
+   - `failedNotifications`
+
+3. **Vault Depletion Recovery:**
+   If `InsufficientVaultBalance` error logs appear on-chain, fund the vault ATA directly:
+   `spl-token transfer <REWARD_MINT> <AMOUNT> <VAULT_ATA> --fund-recipient`
+
+4. **Emergency Pause:**
+   If anomalous behavior is detected, trigger the pause circuit-breaker:
+   `node dist/cli.js pause-campaign --campaign-id 42069 -k /secure/admin.json`

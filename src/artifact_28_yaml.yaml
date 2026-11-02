@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+  grow-rewards-daemon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: grow_rewards_automation_daemon
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - SOLANA_RPC_URL=https://api.devnet.solana.com
+      - SOLANA_WS_URL=wss://api.devnet.solana.com
+      - PROGRAM_ID=GrowRwds11111111111111111111111111111111111
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - RESEND_SENDER_EMAIL=${RESEND_SENDER_EMAIL}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

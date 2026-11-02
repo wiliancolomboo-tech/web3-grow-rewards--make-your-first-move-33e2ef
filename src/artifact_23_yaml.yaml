@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  grow-rewards-daemon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: grow-rewards-engine
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      - SOLANA_WS_URL=${SOLANA_WS_URL:-wss://api.devnet.solana.com}
+      - PROGRAM_ID=${PROGRAM_ID:-GrwRew1111111111111111111111111111111111111}
+      - VERIFIER_PRIVATE_KEY=${VERIFIER_PRIVATE_KEY}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - METRICS_PORT=9108
+    ports:
+      - "9108:9108"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9108/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: grow-rewards-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - grow-rewards-daemon

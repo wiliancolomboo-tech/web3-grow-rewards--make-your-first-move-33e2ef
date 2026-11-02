@@ -1,0 +1,24 @@
+{
+  "name": "grow-rewards-daemon",
+  "version": "1.0.0",
+  "description": "Production Agent Daemon for Solana Grow Rewards Engine",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsc && node dist/index.js",
+    "test": "ts-node src/cli.ts"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.30.1",
+    "@solana/spl-token": "^0.4.8",
+    "@solana/web3.js": "^1.95.3",
+    "dotenv": "^16.4.5",
+    "node-fetch": "^2.7.0",
+    "resend": "^3.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/node-fetch": "^2.6.11",
+    "typescript": "^5.5.0"
+  }
+}

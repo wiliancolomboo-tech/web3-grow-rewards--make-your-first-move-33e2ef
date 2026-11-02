@@ -1,21 +1,38 @@
 flowchart TD
-    subgraph Client Layer
-        A[End User Wallet / DApp UI] -->|1. Execute Qualified First Move| B(Solana Network - Target Protocol)
-        A -->|2. Request Proof / Claim Payload| C[Grow Rewards Gateway / Relayer]
+    subgraph ClientLayer ["1. Client & User Layer"]
+        User(["End User Wallet"])
+        Frontend["Grow Portal / dApp UI"]
     end
 
-    subgraph Off-Chain Enterprise Relayer & Attribution Engine
-        C -->|3. Query Transaction Signature| D[Solana RPC / Geyser Node]
-        D -->|4. Confirm Execution & Thresholds| C
-        C -->|5. Sign Action Attestation with Ed25519 Key| C
-        C -->|6. Trigger Growth Notification Event| E[Resend Email API]
-        C -->|7. Post Metrics to Ops Channel| F[Slack/Discord Enterprise Webhook]
+    subgraph OffChainEngine ["2. Enterprise Verification & Relay Engine"]
+        ActionWatcher["On-Chain Action Indexer"]
+        SignerService["Attestation Authority (Keypair / TEE)"]
+        NotificationWorker["Enterprise Event Relay (Resend / Slack Webhook)"]
     end
 
-    subgraph Solana Program (Anchor Engine)
-        C -->|8. Submit 'claim_first_move' IX + Proof| G[GrowRewards Program]
-        G -->|9. Validate PDA & Anti-Replay Bitmask| H[(UserTracker PDA)]
-        G -->|10. Check Epoch Limit & Decay Curve| I[(Campaign PDA)]
-        G -->|11. CPI Token Transfer via Seeds| J[(Reward Vault PDA)]
-        J -->|12. Transfer SPL Tokens| K[User Destination ATA]
+    subgraph SolanaProgram ["3. Solana Program Core Engine (Anchor)"]
+        Program["Grow Rewards Smart Contract"]
+        CampaignPDA[("Campaign Config & Vault PDA")]
+        UserRecordPDA[("User First-Move Record PDA")]
+        RewardVault[("Token Reward Vault (SPL)")]
     end
+
+    subgraph NotificationHub ["4. External Enterprise Sinks"]
+        Slack["Slack Channel Alert (#growth-alerts)"]
+        Resend["Resend Transactional Email"]
+    end
+
+    User -->|"1. Connects & Executes First Move"| Frontend
+    Frontend -->|"2. Reports action / TX Hash"| ActionWatcher
+    ActionWatcher -->|"3. Verifies Action & Issues Ed25519 Attestation"| SignerService
+    SignerService -->|"4. Returns Signed Claim Permit"| Frontend
+    Frontend -->|"5. Executes claim_first_move(Proof, Nonce)"| Program
+
+    Program -->|"Checks PDA init & double-claim"| UserRecordPDA
+    Program -->|"Validates Signature & Limits"| CampaignPDA
+    Program -->|"Transfers Reward SPL Tokens"| RewardVault
+    RewardVault -->|"Transfers to User ATA"| User
+
+    Program -.->|"Emits FirstMoveClaimedEvent"| NotificationWorker
+    NotificationWorker -->|"Webhook Trigger"| Slack
+    NotificationWorker -->|"Sends Activation Receipt"| Resend

@@ -1,0 +1,6 @@
++-------------------------------------------------------------------------------+
+|                               Turnkey Runbook                                 |
+|                                                                               |
+|  1. Deploy Contract --->  2. Seed Escrow Vault --->  3. Launch Daemon Worker  |
+|  (Anchor/Solana CLI)     (SPL Transfer to PDA)       (Docker Compose / ECS)   |
++-------------------------------------------------------------------------------+

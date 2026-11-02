@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  grow-rewards-daemon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: grow_rewards_daemon
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - SOLANA_RPC_URL=https://api.devnet.solana.com
+      - SOLANA_WS_URL=wss://api.devnet.solana.com
+      - PROGRAM_ID=GrwRew1111111111111111111111111111111111111
+      - AUTHORITY_PRIVATE_KEY=your_base58_encoded_authority_key
+      - RESEND_API_KEY=re_enterprise_test_key_123456
+      - NOTIFICATION_EMAIL_FROM=rewards@growprotocol.io
+      - DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"

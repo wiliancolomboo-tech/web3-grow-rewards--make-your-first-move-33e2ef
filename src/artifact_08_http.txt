@@ -1,0 +1,14 @@
+GET /health HTTP/1.1
+   Host: localhost:8080
+   
+   HTTP/1.1 200 OK
+   Content-Type: application/json
+   
+   {
+     "status": "HEALTHY",
+     "active_campaigns": 1,
+     "processed_moves": 1420,
+     "solana_slot_height": 284910214,
+     "resend_dispatcher": "ONLINE",
+     "uptime_seconds": 184920
+   }

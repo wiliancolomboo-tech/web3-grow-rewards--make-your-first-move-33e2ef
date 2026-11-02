@@ -1,0 +1,11 @@
+GET /healthz
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "status": "HEALTHY",
+  "program_id": "GrowReW1111111111111111111111111111111111111",
+  "ws_connected": true,
+  "slot_height": 298412034,
+  "events_processed": 14920
+}

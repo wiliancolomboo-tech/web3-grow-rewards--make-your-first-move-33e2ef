@@ -1,0 +1,20 @@
+1/3 🚀 Onboarding on @Solana should be instant, rewarding, and bot-proof. 
+
+Proud to introduce Grow Rewards: "Make Your First Move" — an open-source, enterprise-grade incentive engine that turns maiden interactions into lifelong retention. 
+
+Built with @AnchorLang, PDA safe escrows & real-time CRM webhooks. 🧵👇
+
+2/3 🛡️ Why it wins:
+- Sybil-proof first-move validation directly on-chain
+- Zero-custody escrow vaults with programmable claim caps
+- Real-time off-chain dispatch via @resend & Discord/Slack webhooks
+- 100% test coverage with zero unsafe assumptions
+
+Your first move on Solana is now unforgettable. 💎⚡
+
+3/3 📦 Turnkey & ready to ship today:
+Complete with 1-click Docker orchestration, Rust/Anchor program, TypeScript SDK & comprehensive test suites.
+
+Check out the code and deploy your growth pool in seconds: https://github.com/protocol/grow-rewards
+
+#Solana #SolanaDev #Web3Growth #Anchor

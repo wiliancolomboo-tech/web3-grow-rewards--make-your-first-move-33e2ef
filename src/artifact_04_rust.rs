@@ -1,243 +1,180 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 
-declare_id!("GrwRew1111111111111111111111111111111111111");
-
-pub const CAMPAIGN_SEED: &[u8] = b"grow_campaign";
-pub const USER_TRACKER_SEED: &[u8] = b"user_tracker";
-pub const REWARD_VAULT_SEED: &[u8] = b"reward_vault";
-
-// Math Constants for Early Mover Bonus
-pub const BPS_DENOMINATOR: u64 = 10_000;
-pub const MAX_MULTIPLIER_BPS: u64 = 25_000; // 2.5x Max Multiplier
-pub const BASE_MULTIPLIER_BPS: u64 = 10_000; // 1.0x Base Multiplier
+declare_id!("GrwRew111111111111111111111111111111111111");
 
 #[program]
 pub mod grow_rewards {
     use super::*;
 
-    /// Initialize a new "Make Your First Move" campaign
+    /// Initializes a new reward campaign with an isolated reward escrow vault.
     pub fn initialize_campaign(
         ctx: Context<InitializeCampaign>,
         campaign_id: u64,
-        base_reward_amount: u64,
-        max_claimants: u32,
-        action_verifier: Pubkey,
-        decay_period_slots: u64,
+        reward_amount_per_move: u64,
+        max_allowed_claims: u64,
     ) -> Result<()> {
-        require!(base_reward_amount > 0, GrowError::InvalidRewardAmount);
-        require!(max_claimants > 0, GrowError::InvalidMaxClaimants);
-        require!(action_verifier != Pubkey::default(), GrowError::InvalidVerifier);
+        require!(reward_amount_per_move > 0, GrowError::InvalidRewardAmount);
+        require!(max_allowed_claims > 0, GrowError::InvalidMaxClaims);
 
         let campaign = &mut ctx.accounts.campaign;
-        campaign.admin = ctx.accounts.admin.key();
+        campaign.authority = ctx.accounts.authority.key();
         campaign.campaign_id = campaign_id;
         campaign.reward_mint = ctx.accounts.reward_mint.key();
-        campaign.reward_vault = ctx.accounts.reward_vault.key();
-        campaign.base_reward_amount = base_reward_amount;
-        campaign.max_claimants = max_claimants;
-        campaign.claimants_count = 0;
-        campaign.action_verifier = action_verifier;
-        campaign.decay_period_slots = decay_period_slots;
-        campaign.start_slot = Clock::get()?.slot;
-        campaign.is_paused = false;
-        campaign.vault_bump = ctx.bumps.reward_vault;
-        campaign.campaign_bump = ctx.bumps.campaign;
+        campaign.vault = ctx.accounts.vault.key();
+        campaign.reward_amount_per_move = reward_amount_per_move;
+        campaign.max_allowed_claims = max_allowed_claims;
+        campaign.total_claims_completed = 0;
+        campaign.is_active = true;
+        campaign.bump = ctx.bumps.campaign;
+        campaign.vault_bump = ctx.bumps.vault;
 
         emit!(CampaignInitializedEvent {
-            campaign_id,
-            admin: campaign.admin,
+            campaign: campaign.key(),
+            authority: campaign.authority,
             reward_mint: campaign.reward_mint,
-            base_reward_amount,
-            max_claimants,
+            reward_amount_per_move,
+            max_allowed_claims,
+            timestamp: Clock::get()?.unix_timestamp,
         });
 
         Ok(())
     }
 
-    /// Claim the "First Move" reward with cryptographic attestation
-    pub fn claim_first_move(
-        ctx: Context<ClaimFirstMove>,
-        action_signature: [u8; 64],
-        action_timestamp: i64,
+    /// Deposits rewards into the campaign escrow vault.
+    pub fn fund_campaign_vault(ctx: Context<FundCampaignVault>, amount: u64) -> Result<()> {
+        require!(amount > 0, GrowError::InvalidDepositAmount);
+
+        let cpi_accounts = Transfer {
+            from: ctx.accounts.funder_token_account.to_account_info(),
+            to: ctx.accounts.vault.to_account_info(),
+            authority: ctx.accounts.funder.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts);
+        token::transfer(cpi_ctx, amount)?;
+
+        emit!(CampaignVaultFundedEvent {
+            campaign: ctx.accounts.campaign.key(),
+            funder: ctx.accounts.funder.key(),
+            amount,
+            timestamp: Clock::get()?.unix_timestamp,
+        });
+
+        Ok(())
+    }
+
+    /// Primary Onboarding Instruction: "Make Your First Move"
+    /// Atomically records user activation, verifies single-use PDA, and executes reward disbursement.
+    pub fn make_first_move(
+        ctx: Context<MakeFirstMove>,
+        action_type: u8,
+        referral_code: [u8; 16],
     ) -> Result<()> {
         let campaign = &mut ctx.accounts.campaign;
-        let tracker = &mut ctx.accounts.user_tracker;
+        require!(campaign.is_active, GrowError::CampaignInactive);
+        require!(
+            campaign.total_claims_completed < campaign.max_allowed_claims,
+            GrowError::CampaignCapacityExhausted
+        );
+
+        let vault_balance = ctx.accounts.vault.amount;
+        require!(
+            vault_balance >= campaign.reward_amount_per_move,
+            GrowError::InsufficientVaultLiquidity
+        );
+
         let clock = Clock::get()?;
+        let user_activation = &mut ctx.accounts.user_activation;
+        user_activation.user = ctx.accounts.user.key();
+        user_activation.campaign = campaign.key();
+        user_activation.action_type = action_type;
+        user_activation.referral_code = referral_code;
+        user_activation.timestamp = clock.unix_timestamp;
+        user_activation.bump = ctx.bumps.user_activation;
 
-        // Safety validations
-        require!(!campaign.is_paused, GrowError::CampaignPaused);
-        require!(campaign.claimants_count < campaign.max_claimants, GrowError::CampaignCapReached);
-        require!(!tracker.has_claimed, GrowError::AlreadyClaimedFirstMove);
-        require!(
-            clock.unix_timestamp - action_timestamp < 3600, // 1 hour validity threshold
-            GrowError::AttestationExpired
-        );
+        // Perform checked arithmetic for total claims
+        campaign.total_claims_completed = campaign
+            .total_claims_completed
+            .checked_add(1)
+            .ok_or(GrowError::ArithmeticOverflow)?;
 
-        // Verify off-chain verifier authority signature message payload:
-        // Hash: SHA256(user_pubkey || campaign_id || action_timestamp)
-        let hash_data = [
-            ctx.accounts.user.key().as_ref(),
-            &campaign.campaign_id.to_le_bytes(),
-            &action_timestamp.to_le_bytes(),
-        ].concat();
-        let expected_hash = anchor_lang::solana_program::hash::hash(&hash_data);
+        // Transfer reward tokens from Vault PDA to User Token Account via CPI
+        let campaign_key = campaign.key();
+        let seeds = &[
+            b"vault",
+            campaign_key.as_ref(),
+            &[campaign.vault_bump],
+        ];
+        let signer_seeds = &[&seeds[..]];
 
-        // Security requirement: Ensure signature is verified against campaign.action_verifier
-        // In this implementation, the action_verifier signature is verified off-chain and authorized by authority account
-        require_keys_eq!(
-            ctx.accounts.verifier_authority.key(),
-            campaign.action_verifier,
-            GrowError::UnauthorizedVerifier
-        );
-
-        // Compute Early Mover Multiplier
-        let current_slot = clock.slot;
-        let slots_elapsed = current_slot.saturating_sub(campaign.start_slot);
-        
-        let multiplier_bps = if slots_elapsed >= campaign.decay_period_slots {
-            BASE_MULTIPLIER_BPS
-        } else {
-            let decay_delta = MAX_MULTIPLIER_BPS - BASE_MULTIPLIER_BPS;
-            let reduction = (decay_delta as u128 * slots_elapsed as u128)
-                / (campaign.decay_period_slots as u128);
-            MAX_MULTIPLIER_BPS.saturating_sub(reduction as u64)
+        let transfer_cpi_accounts = Transfer {
+            from: ctx.accounts.vault.to_account_info(),
+            to: ctx.accounts.user_token_account.to_account_info(),
+            authority: ctx.accounts.vault.to_account_info(),
         };
-
-        let calculated_payout = (campaign.base_reward_amount as u128 * multiplier_bps as u128
-            / BPS_DENOMINATOR as u128) as u64;
-
-        // Ensure Vault has sufficient balance
-        require!(
-            ctx.accounts.reward_vault.amount >= calculated_payout,
-            GrowError::VaultInsufficientFunds
-        );
-
-        // Update Tracker State
-        tracker.user = ctx.accounts.user.key();
-        tracker.campaign_id = campaign.campaign_id;
-        tracker.has_claimed = true;
-        tracker.claimed_at = clock.unix_timestamp;
-        tracker.reward_payout = calculated_payout;
-        tracker.multiplier_bps = multiplier_bps;
-        tracker.tracker_bump = ctx.bumps.user_tracker;
-
-        // Increment campaign counter
-        campaign.claimants_count = campaign.claimants_count.checked_add(1).ok_or(GrowError::Overflow)?;
-
-        // Execute CPI Token Transfer from Vault to User ATA
-        let campaign_id_bytes = campaign.campaign_id.to_le_bytes();
-        let seeds = &[
-            REWARD_VAULT_SEED,
-            campaign_id_bytes.as_ref(),
-            &[campaign.vault_bump],
-        ];
-        let signer_seeds = &[&seeds[..]];
-
-        let transfer_ctx = CpiContext::new_with_signer(
+        let transfer_cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
-            Transfer {
-                from: ctx.accounts.reward_vault.to_account_info(),
-                to: ctx.accounts.user_reward_account.to_account_info(),
-                authority: ctx.accounts.reward_vault.to_account_info(),
-            },
+            transfer_cpi_accounts,
             signer_seeds,
         );
-        token::transfer(transfer_ctx, calculated_payout)?;
+        token::transfer(transfer_cpi_ctx, campaign.reward_amount_per_move)?;
 
-        emit!(FirstMoveClaimedEvent {
-            campaign_id: campaign.campaign_id,
+        emit!(FirstMoveCompletedEvent {
+            campaign: campaign.key(),
             user: ctx.accounts.user.key(),
-            reward_payout: calculated_payout,
-            multiplier_bps,
-            action_hash: expected_hash.to_bytes(),
+            action_type,
+            referral_code,
+            reward_amount: campaign.reward_amount_per_move,
+            timestamp: clock.unix_timestamp,
         });
 
         Ok(())
     }
 
-    /// Admin Emergency Controls & Pool Management
-    pub fn set_paused(ctx: Context<ManageCampaign>, is_paused: bool) -> Result<()> {
+    /// Emergency pause/unpause campaign functionality
+    pub fn set_campaign_state(ctx: Context<SetCampaignState>, is_active: bool) -> Result<()> {
         let campaign = &mut ctx.accounts.campaign;
-        campaign.is_paused = is_paused;
-        emit!(CampaignStatusUpdatedEvent {
-            campaign_id: campaign.campaign_id,
-            is_paused,
+        campaign.is_active = is_active;
+        emit!(CampaignStateChangedEvent {
+            campaign: campaign.key(),
+            is_active,
+            timestamp: Clock::get()?.unix_timestamp,
         });
-        Ok(())
-    }
-
-    /// Close expired campaign & withdraw remaining reserves
-    pub fn close_campaign(ctx: Context<CloseCampaign>) -> Result<()> {
-        let campaign = &ctx.accounts.campaign;
-        let campaign_id_bytes = campaign.campaign_id.to_le_bytes();
-        let seeds = &[
-            REWARD_VAULT_SEED,
-            campaign_id_bytes.as_ref(),
-            &[campaign.vault_bump],
-        ];
-        let signer_seeds = &[&seeds[..]];
-
-        let remaining_balance = ctx.accounts.reward_vault.amount;
-        if remaining_balance > 0 {
-            let transfer_ctx = CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.reward_vault.to_account_info(),
-                    to: ctx.accounts.admin_reward_account.to_account_info(),
-                    authority: ctx.accounts.reward_vault.to_account_info(),
-                },
-                signer_seeds,
-            );
-            token::transfer(transfer_ctx, remaining_balance)?;
-        }
-
-        // Close the vault token account
-        let close_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            token::CloseAccount {
-                account: ctx.accounts.reward_vault.to_account_info(),
-                destination: ctx.accounts.admin.to_account_info(),
-                authority: ctx.accounts.reward_vault.to_account_info(),
-            },
-            signer_seeds,
-        );
-        token::close_account(close_ctx)?;
-
         Ok(())
     }
 }
 
 // -----------------------------------------------------------------------------
-// ACCOUNT CONTEXTS
+// ACCOUNT VALIDATION STRUCTS
 // -----------------------------------------------------------------------------
 
 #[derive(Accounts)]
 #[instruction(campaign_id: u64)]
+pub征
 pub struct InitializeCampaign<'info> {
-    #[account(mut)]
-    pub admin: Signer<'info>,
+    #[account(
+        init,
+        payer = authority,
+        space = CampaignState::LEN,
+        seeds = [b"campaign", authority.key().as_ref(), &campaign_id.to_le_bytes()],
+        bump
+    )]
+    pub campaign: Account<'info, CampaignState>,
 
     pub reward_mint: Account<'info, Mint>,
 
     #[account(
         init,
-        payer = admin,
-        space = Campaign::LEN,
-        seeds = [CAMPAIGN_SEED, campaign_id.to_le_bytes().as_ref()],
-        bump
-    )]
-    pub campaign: Account<'info, Campaign>,
-
-    #[account(
-        init,
-        payer = admin,
-        seeds = [REWARD_VAULT_SEED, campaign_id.to_le_bytes().as_ref()],
+        payer = authority,
+        seeds = [b"vault", campaign.key().as_ref()],
         bump,
         token::mint = reward_mint,
-        token::authority = reward_vault,
+        token::authority = vault
     )]
-    pub reward_vault: Account<'info, TokenAccount>,
+    pub vault: Account<'info, TokenAccount>,
+
+    #[account(mut)]
+    pub authority: Signer<'info>,
 
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
@@ -245,178 +182,168 @@ pub struct InitializeCampaign<'info> {
 }
 
 #[derive(Accounts)]
-pub struct ClaimFirstMove<'info> {
-    #[account(mut)]
-    pub user: Signer<'info>,
-
-    pub verifier_authority: Signer<'info>,
-
+pub struct FundCampaignVault<'info> {
     #[account(
         mut,
-        seeds = [CAMPAIGN_SEED, campaign.campaign_id.to_le_bytes().as_ref()],
-        bump = campaign.campaign_bump
+        has_one = vault @ GrowError::InvalidVaultAccount,
     )]
-    pub campaign: Account<'info, Campaign>,
+    pub campaign: Account<'info, CampaignState>,
+
+    #[account(mut)]
+    pub vault: Account<'info, TokenAccount>,
+
+    #[account(mut)]
+    pub funder_token_account: Account<'info, TokenAccount>,
+
+    pub funder: Signer<'info>,
+    pub token_program: Program<'info, Token>,
+}
+
+#[derive(Accounts)]
+pub struct MakeFirstMove<'info> {
+    #[account(
+        mut,
+        has_one = vault @ GrowError::InvalidVaultAccount,
+    )]
+    pub campaign: Account<'info, CampaignState>,
+
+    #[account(mut)]
+    pub vault: Account<'info, TokenAccount>,
 
     #[account(
         init,
         payer = user,
-        space = UserTracker::LEN,
-        seeds = [USER_TRACKER_SEED, campaign.campaign_id.to_le_bytes().as_ref(), user.key().as_ref()],
+        space = UserActivationState::LEN,
+        seeds = [b"user_activation", campaign.key().as_ref(), user.key().as_ref()],
         bump
     )]
-    pub user_tracker: Account<'info, UserTracker>,
+    pub user_activation: Account<'info, UserActivationState>,
 
     #[account(
         mut,
-        seeds = [REWARD_VAULT_SEED, campaign.campaign_id.to_le_bytes().as_ref()],
-        bump = campaign.vault_bump
+        constraint = user_token_account.owner == user.key() @ GrowError::InvalidRecipientOwner,
+        constraint = user_token_account.mint == campaign.reward_mint @ GrowError::InvalidMint
     )]
-    pub reward_vault: Account<'info, TokenAccount>,
+    pub user_token_account: Account<'info, TokenAccount>,
 
-    #[account(
-        mut,
-        token::mint = campaign.reward_mint,
-        token::authority = user
-    )]
-    pub user_reward_account: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub user: Signer<'info>,
 
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
 }
 
 #[derive(Accounts)]
-pub struct ManageCampaign<'info> {
-    pub admin: Signer<'info>,
+pub struct SetCampaignState<'info> {
     #[account(
         mut,
-        has_one = admin @ GrowError::UnauthorizedAdmin,
-        seeds = [CAMPAIGN_SEED, campaign.campaign_id.to_le_bytes().as_ref()],
-        bump = campaign.campaign_bump
+        has_one = authority @ GrowError::UnauthorizedAuthority
     )]
-    pub campaign: Account<'info, Campaign>,
-}
-
-#[derive(Accounts)]
-pub struct CloseCampaign<'info> {
-    #[account(mut)]
-    pub admin: Signer<'info>,
-    #[account(
-        mut,
-        has_one = admin @ GrowError::UnauthorizedAdmin,
-        close = admin,
-        seeds = [CAMPAIGN_SEED, campaign.campaign_id.to_le_bytes().as_ref()],
-        bump = campaign.campaign_bump
-    )]
-    pub campaign: Account<'info, Campaign>,
-
-    #[account(
-        mut,
-        seeds = [REWARD_VAULT_SEED, campaign.campaign_id.to_le_bytes().as_ref()],
-        bump = campaign.vault_bump
-    )]
-    pub reward_vault: Account<'info, TokenAccount>,
-
-    #[account(
-        mut,
-        token::mint = campaign.reward_mint,
-        token::authority = admin
-    )]
-    pub admin_reward_account: Account<'info, TokenAccount>,
-
-    pub token_program: Program<'info, Token>,
+    pub campaign: Account<'info, CampaignState>,
+    pub authority: Signer<'info>,
 }
 
 // -----------------------------------------------------------------------------
-// STATE STRUCTS
+// STATE SCHEMAS
 // -----------------------------------------------------------------------------
 
 #[account]
-pub struct Campaign {
-    pub admin: Pubkey,               // 32
-    pub campaign_id: u64,            // 8
-    pub reward_mint: Pubkey,         // 32
-    pub reward_vault: Pubkey,        // 32
-    pub base_reward_amount: u64,     // 8
-    pub max_claimants: u32,          // 4
-    pub claimants_count: u32,        // 4
-    pub action_verifier: Pubkey,     // 32
-    pub decay_period_slots: u64,     // 8
-    pub start_slot: u64,             // 8
-    pub is_paused: bool,             // 1
-    pub vault_bump: u8,              // 1
-    pub campaign_bump: u8,           // 1
+pub struct CampaignState {
+    pub authority: Pubkey,               // 32
+    pub campaign_id: u64,                // 8
+    pub reward_mint: Pubkey,             // 32
+    pub vault: Pubkey,                   // 32
+    pub reward_amount_per_move: u64,     // 8
+    pub max_allowed_claims: u64,         // 8
+    pub total_claims_completed: u64,     // 8
+    pub is_active: bool,                 // 1
+    pub bump: u8,                        // 1
+    pub vault_bump: u8,                  // 1
 }
 
-impl Campaign {
-    pub const LEN: usize = 8 + 32 + 8 + 32 + 32 + 8 + 4 + 4 + 32 + 8 + 8 + 1 + 1 + 1 + 32;
+impl CampaignState {
+    pub const LEN: usize = 8 + 32 + 8 + 32 + 32 + 8 + 8 + 8 + 1 + 1 + 1 + 64; // + padding
 }
 
 #[account]
-pub struct UserTracker {
-    pub user: Pubkey,                // 32
-    pub campaign_id: u64,            // 8
-    pub has_claimed: bool,           // 1
-    pub claimed_at: i64,             // 8
-    pub reward_payout: u64,          // 8
-    pub multiplier_bps: u64,         // 8
-    pub tracker_bump: u8,            // 1
+pub struct UserActivationState {
+    pub user: Pubkey,                    // 32
+    pub campaign: Pubkey,                // 32
+    pub action_type: u8,                 // 1
+    pub referral_code: [u8; 16],         // 16
+    pub timestamp: i64,                  // 8
+    pub bump: u8,                        // 1
 }
 
-impl UserTracker {
-    pub const LEN: usize = 8 + 32 + 8 + 1 + 8 + 8 + 8 + 1 + 32;
+impl UserActivationState {
+    pub const LEN: usize = 8 + 32 + 32 + 1 + 16 + 8 + 1 + 32; // + padding
 }
 
 // -----------------------------------------------------------------------------
-// EVENTS & ERRORS
+// EVENTS
 // -----------------------------------------------------------------------------
 
 #[event]
 pub struct CampaignInitializedEvent {
-    pub campaign_id: u64,
-    pub admin: Pubkey,
+    pub campaign: Pubkey,
+    pub authority: Pubkey,
     pub reward_mint: Pubkey,
-    pub base_reward_amount: u64,
-    pub max_claimants: u32,
+    pub reward_amount_per_move: u64,
+    pub max_allowed_claims: u64,
+    pub timestamp: i64,
 }
 
 #[event]
-pub struct FirstMoveClaimedEvent {
-    pub campaign_id: u64,
+pub struct CampaignVaultFundedEvent {
+    pub campaign: Pubkey,
+    pub funder: Pubkey,
+    pub amount: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct FirstMoveCompletedEvent {
+    pub campaign: Pubkey,
     pub user: Pubkey,
-    pub reward_payout: u64,
-    pub multiplier_bps: u64,
-    pub action_hash: [u8; 32],
+    pub action_type: u8,
+    pub referral_code: [u8; 16],
+    pub reward_amount: u64,
+    pub timestamp: i64,
 }
 
 #[event]
-pub struct CampaignStatusUpdatedEvent {
-    pub campaign_id: u64,
-    pub is_paused: bool,
+pub struct CampaignStateChangedEvent {
+    pub campaign: Pubkey,
+    pub is_active: bool,
+    pub timestamp: i64,
 }
+
+// -----------------------------------------------------------------------------
+// ERROR CODES
+// -----------------------------------------------------------------------------
 
 #[error_code]
 pub enum GrowError {
-    #[msg("Reward amount must be strictly greater than zero.")]
+    #[msg("Reward amount per move must be greater than zero.")]
     InvalidRewardAmount,
-    #[msg("Max claimants cap must be strictly greater than zero.")]
-    InvalidMaxClaimants,
-    #[msg("Invalid verifier public key provided.")]
-    InvalidVerifier,
-    #[msg("Campaign is currently paused by administrator.")]
-    CampaignPaused,
-    #[msg("Campaign max claimant cap has been reached.")]
-    CampaignCapReached,
-    #[msg("User has already claimed their First Move reward.")]
-    AlreadyClaimedFirstMove,
-    #[msg("Attestation has expired; please request a fresh proof.")]
-    AttestationExpired,
-    #[msg("Signer is not authorized as the campaign verifier.")]
-    UnauthorizedVerifier,
-    #[msg("Reward vault does not hold enough tokens to fulfill reward.")]
-    VaultInsufficientFunds,
-    #[msg("Unauthorized administrator.")]
-    UnauthorizedAdmin,
-    #[msg("Arithmetic overflow encountered.")]
-    Overflow,
+    #[msg("Maximum allowed claims must be greater than zero.")]
+    InvalidMaxClaims,
+    #[msg("Deposit amount must be greater than zero.")]
+    InvalidDepositAmount,
+    #[msg("This campaign is currently paused or inactive.")]
+    CampaignInactive,
+    #[msg("Campaign max claim threshold has been reached.")]
+    CampaignCapacityExhausted,
+    #[msg("Campaign escrow vault has insufficient tokens to fulfill reward.")]
+    InsufficientVaultLiquidity,
+    #[msg("Arithmetic overflow occurred during state computation.")]
+    ArithmeticOverflow,
+    #[msg("Supplied vault account does not match the campaign configuration.")]
+    InvalidVaultAccount,
+    #[msg("User recipient token account owner must match the signing user.")]
+    InvalidRecipientOwner,
+    #[msg("Recipient token account mint does not match campaign reward mint.")]
+    InvalidMint,
+    #[msg("Only the designated campaign authority can modify this account.")]
+    UnauthorizedAuthority,
 }

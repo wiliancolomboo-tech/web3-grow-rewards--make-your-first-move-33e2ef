@@ -1,0 +1,10 @@
+{
+    "processedMoves": 1420,
+    "dispatchedEmails": 1420,
+    "webhookNotifications": 1420,
+    "failedDispatches": 0,
+    "lastHeartbeat": 1729000000000,
+    "cluster": "https://api.devnet.solana.com",
+    "programId": "Grow111111111111111111111111111111111111111",
+    "uptimeSeconds": 86400
+  }

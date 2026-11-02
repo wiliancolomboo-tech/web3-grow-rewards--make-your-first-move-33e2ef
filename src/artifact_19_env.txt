@@ -1,0 +1,9 @@
+PORT=8080
+NODE_ENV=production
+PROGRAM_ID=GrowRwds11111111111111111111111111111111111
+SOLANA_RPC_URL=https://api.devnet.solana.com
+SOLANA_WS_URL=wss://api.devnet.solana.com
+RESEND_API_KEY=re_1234567890abcdef
+EMAIL_SENDER_IDENTITY=Grow Rewards <onboarding@growprotocol.io>
+SLACK_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder

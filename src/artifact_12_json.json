@@ -1,0 +1,6 @@
+{
+     "status": "HEALTHY",
+     "connectedRpc": "https://api.devnet.solana.com",
+     "activeSignaturesMonitored": 1284,
+     "uptimeSeconds": 86400
+   }

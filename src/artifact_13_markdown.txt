@@ -1,0 +1,15 @@
+1/3 🚀 Most Web3 onboarding funnels lose 90%+ of new users between wallet creation and their first transaction. 
+
+Introducing "Grow Rewards: Make Your First Move" — an open-source, sybil-resistant on-chain incentive protocol on @solana. 🌐⚡
+
+2/3 🛠️ How it works:
+• Zero-loss escrow pools hold incentive capital
+• Verifiable oracle attestation detects genuine first-move actions (swaps, stakes, LP)
+• Sub-second atomic reward distribution directly to user PDAs
+• Instant transactional notifications powered by @resend & webhooks
+
+3/3 📦 100% production-ready, featuring full @coral_xyz smart contracts, turnkey Docker compose, & comprehensive test coverage.
+
+Make your first move and retain users permanently:
+GitHub: https://github.com/grow-protocol/grow-rewards-first-move
+#Solana #DeFi #Web3Growth #Anchor

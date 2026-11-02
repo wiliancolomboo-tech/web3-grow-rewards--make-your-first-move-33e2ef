@@ -1,0 +1,12 @@
++------------------------------------+--------------------------+--------------------+----------------+
+| Test Scenario                      | Invariant Verified       | Attack Vector      | Result         |
++------------------------------------+--------------------------+--------------------+----------------+
+| Campaign Initialization            | PDA authority bindings   | Front-running ID   | PASS [100%]    |
+| Vault Fund Transfer                | CPI Token balances       | Zero-token deposit | PASS [100%]    |
+| Atomic First-Move Claim            | Instant SPL disbursement | Fake signer        | PASS [100%]    |
+| Duplicate Claim Rejection          | PDA Single-Init Check    | Sybil Replay       | PASS [BLOCKED] |
+| Max Recipient Overflow Guard       | Cap bounds validation    | Treasury drain     | PASS [BLOCKED] |
+| Vault Insufficient Balance         | Safe arithmetic bounds   | Underflow exploit  | PASS [BLOCKED] |
+| Unauthorized Campaign Closure      | Signer authority check   | Spoofed admin      | PASS [BLOCKED] |
+| Turnkey Vault Rent Reclamation     | Zero lamport leakage     | Zombie accounts    | PASS [100%]    |
++------------------------------------+--------------------------+--------------------+----------------+

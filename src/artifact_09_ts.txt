@@ -1,0 +1,146 @@
+import {
+  Connection,
+  PublicKey,
+  ConfirmedSignatureInfo
+} from "@solana/web3.js";
+import { Pool } from "pg";
+import {
+  sendResendEmail,
+  sendSlack,
+  sendSponsorWebhook
+} from "./adapters.js";
+
+const rpcUrl = process.env.SOLANA_RPC_URL ?? "https://api.devnet.solana.com";
+const programAddress = process.env.PROGRAM_ADDRESS;
+const pollMs = Number(process.env.POLL_INTERVAL_MS ?? 10000);
+
+if (!programAddress) {
+  throw new Error("PROGRAM_ADDRESS is required");
+}
+
+const connection = new Connection(rpcUrl, "finalized");
+const program = new PublicKey(programAddress);
+
+const pool = process.env.DATABASE_URL
+  ? new Pool({ connectionString: process.env.DATABASE_URL })
+  : null;
+
+async function ensureSchema() {
+  if (!pool) return;
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS reward_events (
+      signature TEXT PRIMARY KEY,
+      wallet TEXT NOT NULL,
+      observed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      notified_at TIMESTAMPTZ
+    )
+  `);
+}
+
+async function alreadyProcessed(signature: string): Promise<boolean> {
+  if (!pool) return false;
+  const result = await pool.query(
+    "SELECT 1 FROM reward_events WHERE signature = $1",
+    [signature]
+  );
+  return result.rowCount === 1;
+}
+
+async function markProcessed(signature: string, wallet: string) {
+  if (!pool) return;
+
+  await pool.query(
+    `INSERT INTO reward_events(signature, wallet)
+     VALUES ($1, $2)
+     ON CONFLICT (signature) DO NOTHING`,
+    [signature, wallet]
+  );
+}
+
+async function notify(signature: string, wallet: string) {
+  const explorer = `https://explorer.solana.com/tx/${signature}?cluster=devnet`;
+
+  await sendSlack(`🎉 Grow Rewards claimed by ${wallet}\n${explorer}`);
+
+  if (process.env.NOTIFICATION_EMAIL) {
+    await sendResendEmail(
+      process.env.NOTIFICATION_EMAIL,
+      "Your Grow Reward has arrived",
+      `<h1>Congratulations!</h1>
+       <p>Your first move was recorded and your reward was claimed.</p>
+       <p><a href="${explorer}">View the transaction</a></p>`
+    );
+  }
+
+  await sendSponsorWebhook({
+    type: "grow_rewards.reward_claimed",
+    signature,
+    wallet,
+    explorer
+  });
+}
+
+async function processSignature(info: ConfirmedSignatureInfo) {
+  if (info.err) return;
+  if (await alreadyProcessed(info.signature)) return;
+
+  const tx = await connection.getParsedTransaction(info.signature, {
+    commitment: "finalized",
+    maxSupportedTransactionVersion: 0
+  });
+
+  if (!tx) return;
+
+  const accountKeys = tx.transaction.message.accountKeys.map((x) =>
+    x.pubkey.toBase58()
+  );
+
+  // A production deployment should decode the Anchor event discriminator.
+  // This conservative filter ensures only transactions invoking the program
+  // are considered; event decoding can be added without changing idempotency.
+  if (!accountKeys.includes(program.toBase58())) return;
+
+  const wallet = accountKeys[0];
+  await markProcessed(info.signature, wallet);
+
+  try {
+    await notify(info.signature, wallet);
+    console.log(`Processed reward claim ${info.signature}`);
+  } catch (error) {
+    console.error("Notification delivery failed", error);
+  }
+}
+
+async function loop() {
+  await ensureSchema();
+
+  let before: string | undefined;
+
+  while (true) {
+    try {
+      const signatures = await connection.getSignaturesForAddress(
+        program,
+        { limit: 25, ...(before ? { before } : {}) },
+        "finalized"
+      );
+
+      for (const signature of signatures.reverse()) {
+        await processSignature(signature);
+      }
+
+      if (signatures.length > 0) {
+        before = signatures[signatures.length - 1].signature;
+      }
+    } catch (error) {
+      console.error("Worker polling error", error);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, pollMs));
+  }
+}
+
+loop().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

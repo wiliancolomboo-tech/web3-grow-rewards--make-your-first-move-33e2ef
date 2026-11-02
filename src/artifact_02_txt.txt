@@ -1,0 +1,13 @@
+[ Solana Cluster (Mainnet/Devnet) ]
+  ├── GrowRewards Core Anchor Program (ID: GrowRWDuQzBqBf37P5PZ4k9f2Ea7b4kYV8n3c1x9wLp)
+  ├── Global Program Config PDA: seeds=[b"global_config"]
+  ├── Campaign PDA: seeds=[b"campaign", campaign_id]
+  ├── Reward Vault PDA: seeds=[b"reward_vault", campaign.key()]
+  └── User Tracker PDA: seeds=[b"user_tracker", campaign.key(), user_pubkey]
+           │
+           ▼ (WebSocket / Geyser Stream via Helius or Triton RPC)
+[ Enterprise Integration Node.js Daemon ]
+  ├── Event Filter (FirstMoveClaimedEvent)
+  ├── Security Decryption & Payload Sanitization
+  ├── Resend Transactional Email Engine (Bearer Auth, 99.99% deliverability)
+  └── Slack Operations Webhook (HMAC-SHA256 Signed Alerts)

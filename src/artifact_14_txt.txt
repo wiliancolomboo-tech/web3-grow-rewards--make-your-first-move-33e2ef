@@ -1,0 +1,7 @@
+Under the hood of Grow Rewards:
+🛡️ Anchor program with PDA-governed milestone isolation
+⚡ Sub-second SPL token distribution directly from programmatic vaults
+📧 Instant notification via @resend & Slack telemetry daemon
+🚫 100% sybil-resistant via deterministic UserProfile PDAs
+
+Code is live & production ready.

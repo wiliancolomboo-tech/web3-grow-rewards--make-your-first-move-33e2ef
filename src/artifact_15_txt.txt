@@ -1,0 +1,19 @@
+================================================================================
+                    GROW REWARDS INCIDENT RESPONSE PLAYBOOK
+================================================================================
+
+1. INCIDENT: Anomalous Draining Pattern Detected
+   a. Issue immediate program pause command via Anchor CLI:
+      $ npx ts-node -e "
+          import * as anchor from '@coral-xyz/anchor';
+          // Call setPaused(true) using campaign authority keypair
+        "
+   b. Revoke compromised Oracle Keypair.
+   c. Withdraw remaining vault funds to cold storage:
+      $ anchor run emergency_withdraw
+
+2. INCIDENT: RPC WebSocket Disconnection
+   a. Worker daemon features built-in reconnect backoff logic.
+   b. To cycle RPC provider, update `SOLANA_RPC_URL` in `.env` to private RPC 
+      (e.g., Helius, Triton, QuickNode) and run:
+      $ docker-compose up -d --force-recreate

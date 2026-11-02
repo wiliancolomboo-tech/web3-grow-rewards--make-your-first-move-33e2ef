@@ -1,0 +1,9 @@
++-------------------------------------------------------------------------------------------------+
+|                                OPERATIONAL HEALTHCHECK SPECIFICATION                            |
++-------------------+----------------------------+------------------------------------------------+
+| Metric            | Target Threshold           | Mitigation Action                              |
++-------------------+----------------------------+------------------------------------------------+
+| Vault Solvency    | > 20% of initial capacity  | Execute `spl-token transfer` to Vault PDA      |
+| RPC Latency       | < 800ms                    | Fallback to dedicated private RPC endpoint     |
+| Voucher Failures  | < 0.1% of claims           | Trigger Verifier Key Rotation Sequence         |
++-------------------+----------------------------+------------------------------------------------+

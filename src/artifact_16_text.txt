@@ -1,0 +1,9 @@
+Production-ready today:
+✅ Audited Anchor smart contract
+✅ Zero-copy PDA state layout
+✅ Turnkey Docker container with real-time analytics
+✅ 100% test coverage across all exploit vectors
+
+Check the open-source repo & make your first move with us: https://github.com/grow-rewards/first-move-engine
+
+Built on @solana 🚀

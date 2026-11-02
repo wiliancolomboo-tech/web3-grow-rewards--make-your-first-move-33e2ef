@@ -1,0 +1,14 @@
++-------------------------------------------------------------------------------------------------------+
+|                                    INCIDENT RESPONSE RUNBOOK                                          |
++-------------------+-----------------------------------+-----------------------------------------------+
+| Scenario          | Root Cause Indicator              | Immediate Action                              |
++-------------------+-----------------------------------+-----------------------------------------------+
+| Vault Liquidity   | Discord alert: Insufficient Vault | Run: yarn cli fund-vault --campaign 42        |
+| Depletion         | Error code 6007 triggered         | --amount 5000000000                           |
++-------------------+-----------------------------------+-----------------------------------------------+
+| RPC Desync /      | Worker logs WS connection timeout | Docker auto-restarts; fallback RPC triggers   |
+| Stall             | WebSocket EOF on Devnet           | Swap SOLANA_RPC_URL to secondary RPC node     |
++-------------------+-----------------------------------+-----------------------------------------------+
+| Suspected Exploit | High velocity milestone creation  | Call `toggle_pause(true)` via admin multisig  |
+| / Bot Activity    | from non-whitelisted actions      | to freeze all payouts immediately             |
++-------------------+-----------------------------------+-----------------------------------------------+

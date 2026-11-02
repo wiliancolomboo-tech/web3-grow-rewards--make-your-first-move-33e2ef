@@ -1,0 +1,16 @@
+1/3 🚀 Excited to unveil Grow Rewards: "Make Your First Move" on @solana! 
+
+Web3 drops 80%+ of users right after wallet connection. We built a zero-latency, anti-sybil milestone protocol that rewards new users the exact second they execute their first on-chain action. ⚡️🧵👇
+
+2/3 🛠️ How it works:
+• Deterministic Anchor PDAs eliminate double-claims & bot farming.
+• Sub-second Ed25519 cryptographic authorization tickets verify qualifying actions.
+• Atomic SPL token rewards delivered right to user ATAs.
+• Integrated instant notification pipeline via @resend and Slack webhooks!
+
+3/3 📦 Turnkey enterprise-ready:
+100% test coverage, comprehensive Anchor Rust contract, Dockerized self-hosted worker, and automated audit trails. 
+
+Making onboarding frictionless for the next 100M users on Solana. 
+
+Check the repo & dive in: github.com/your-org/grow-rewards 🌐💥

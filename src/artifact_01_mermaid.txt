@@ -1,0 +1,35 @@
+flowchart TD
+    subgraph Client["1. User & Client Interface"]
+        User([User Wallet / dApp Frontend])
+        Wallet[Solana Wallet Adapter: Phantom / Solflare]
+    end
+
+    subgraph OffChain["2. Off-Chain Oracles & Enterprise Automation Service"]
+        Relayer["Grow Rewards Agent / Relayer Daemon"]
+        DB[(PostgreSQL / Redis State Cache)]
+        ResendAPI["Resend Enterprise Email Service"]
+        SlackAPI["Slack / Discord Webhook Telemetry"]
+    end
+
+    subgraph SolanaChain["3. Solana On-Chain Program (Anchor Engine)"]
+        Program["Grow Rewards Anchor Program (ID: GrowRew111111111111111111111111111111111111)"]
+        CampaignPDA[("Campaign Config PDA ['campaign', id]")]
+        UserRecordPDA[("User Milestone PDA ['user_record', campaign, user]")]
+        VaultTokenAccount[("Escrow Vault Token PDA ['vault', campaign]")]
+    end
+
+    subgraph TargetProtocol["4. On-Chain Protocol Action"]
+        DEX["Jupiter / Raydium Swap / Staking Program"]
+    end
+
+    User -->|1. Executes Qualified First Move| DEX
+    DEX -->|2. Transaction Confirmed on Solana| Program
+    Relayer -->|3. Monitors Geyser / RPC WebSocket Logs| DEX
+    Relayer -->|4. Validates Anti-Sybil Scoring & Generates Attestation| DB
+    User -->|5. Calls 'record_first_move_and_claim'| Program
+    Program -->|6. Validates Milestone & Prevents Re-entrancy| UserRecordPDA
+    Program -->|7. Disburses Reward Tokens| VaultTokenAccount
+    VaultTokenAccount -->|8. SPL Tokens Sent| User
+    Program -->|9. Emits MilestoneClaimed Event| Relayer
+    Relayer -->|10. Triggers Onboarding Email Welcome| ResendAPI
+    Relayer -->|11. Streams Real-Time Conversion Metrics| SlackAPI

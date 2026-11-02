@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  grow-rewards-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: grow-rewards-worker
+    restart: unless-stopped
+    environment:
+      - SOLANA_RPC_URL=https://api.devnet.solana.com
+      - SOLANA_WS_URL=wss://api.devnet.solana.com
+      - PROGRAM_ID=Grow111111111111111111111111111111111111111
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - RESEND_FROM_EMAIL=onboarding@growrewards.io
+      - DEFAULT_RECIPIENT_EMAIL=admin@growrewards.io
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

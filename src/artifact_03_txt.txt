@@ -1,0 +1,22 @@
++----------------------------------------------------------------------------------------------+
+|                                  INTEGRATION TOPOLOGY                                        |
++----------------------------------------------------------------------------------------------+
+|  [ User Wallet ]                                                                             |
+|         │                                                                                    |
+|         ▼ (Instruction: claim_first_move)                                                    |
+|  [ Solana RPC Node / Validator Cluster ]                                                     |
+|         │                                                                                    |
+|         ▼                                                                                    |
+|  [ Grow Rewards Program (ID: GrowRew11111111111111111111111111111111111) ]                  |
+|     ├── PDA Seed: ["campaign", campaign_id]                                                  |
+|     └── PDA Seed: ["user_record", campaign_id, user_pubkey]                                  |
+|         │                                                                                    |
+|         ├── Transfers SPL Reward ────► [ User Associated Token Account (ATA) ]              |
+|         └── Emits Anchor Event                                                               |
+|                 │                                                                            |
+|                 ▼ (WebSocket logsSubscribe)                                                  |
+|  [ Enterprise Relay Worker (Node.js/TypeScript Engine) ]                                     |
+|         │                                                                                    |
+|         ├──► HTTP POST ────► Resend REST API (Send activation receipt & welcome bonus guide) |
+|         └──► HTTP POST ────► Slack/Discord Webhook (Post metric telemetry to growth team)    |
++----------------------------------------------------------------------------------------------+

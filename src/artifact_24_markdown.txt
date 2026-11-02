@@ -1,0 +1,15 @@
+1/3 🚀 Most Web3 users abandon before making a single on-chain transaction. Faucets get drained by botnets, while genuine users face high UX barriers.
+
+Introducing GrowRewards: "Make Your First Move" — an enterprise-grade user activation engine built on @Solana! 🌿⚡
+
+2/3 🛠️ Under the hood:
+🔒 Ed25519 cryptographically signed milestone tickets
+🛡️ Nonce-derived User PDAs strictly enforcing 1-reward-per-wallet anti-Sybil guarantees
+⚡ Direct SPL Vault automated token transfers with zero lockup
+📬 Real-time retention hooks to @resend & Slack/Discord!
+
+3/3 Open-source, production-ready, and turnkey deployable via Docker & Anchor v0.30+.
+
+Empower your community to #MakeYourFirstMove with instant rewards on @Solana. 
+
+Check out the full architecture & GitHub repository: [https://github.com/grow-rewards/first-move] 🏆

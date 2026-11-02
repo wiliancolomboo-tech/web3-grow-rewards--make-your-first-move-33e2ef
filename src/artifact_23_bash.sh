@@ -1,0 +1,1 @@
+npx ts-node cli/emergency-pause.ts --campaign-id 1 --pause true

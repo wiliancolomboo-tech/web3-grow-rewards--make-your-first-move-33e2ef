@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  grow-rewards-daemon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: grow-rewards-worker
+    restart: always
+    environment:
+      - PORT=8080
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      - PROGRAM_ID=${PROGRAM_ID:-GrwRew1111111111111111111111111111111111111}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - NOTIFICATION_EMAIL_OVERRIDE=${NOTIFICATION_EMAIL_OVERRIDE}
+    ports:
+      - "8080:8080"

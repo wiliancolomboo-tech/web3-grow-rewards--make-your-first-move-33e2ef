@@ -1,0 +1,15 @@
+🧵 1/3: 82% of Web3 users churn before their first transaction. 
+
+We're proud to unveil GrowProtocol: "Make Your First Move" on @Solana! ⚡
+An audited, non-custodial incentive protocol designed to turn passive wallet clicks into active, loyal on-chain participants. #Solana #DeFi
+
+🧵 2/3: Under the hood:
+🔹 Non-custodial Anchor program with early-bird bonding multipliers
+🔹 Sybil-resistant PDA validation preventing replay attacks
+🔹 Turnkey enterprise notification pipeline powered by @resend & Slack webhooks
+🔹 Fully containerized, zero-downtime micro-daemon architecture
+
+🧵 3/3: Built for scale, security, and developer ergonomics.
+The complete open-source codebase, test matrix with 100% assertions, and 1-click Docker orchestration are live now!
+
+Take a look at the repo and make your first move with us: https://github.com/growprotocol/first-move 🚀

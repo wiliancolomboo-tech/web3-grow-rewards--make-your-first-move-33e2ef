@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  grow-rewards-daemon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: grow_rewards_event_worker
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - SOLANA_RPC_URL=https://api.devnet.solana.com
+      - SOLANA_WS_URL=wss://api.devnet.solana.com
+      - PROGRAM_ID=GrowRew111111111111111111111111111111111111
+      - SLACK_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+      - RESEND_API_KEY=re_123456789
+      - NOTIFICATION_SENDER_EMAIL=rewards@growrewards.xyz
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"

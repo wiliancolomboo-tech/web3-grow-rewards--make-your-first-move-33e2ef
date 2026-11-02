@@ -1,0 +1,2 @@
+anchor init grow_rewards
+cd grow_rewards

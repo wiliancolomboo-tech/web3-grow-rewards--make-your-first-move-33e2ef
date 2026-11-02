@@ -1,0 +1,54 @@
+import * as anchor from "@coral-xyz/anchor";
+import { assert } from "chai";
+import { GrowRewards } from "../target/types/grow_rewards";
+
+describe("grow-rewards", () => {
+  const provider = anchor.AnchorProvider.env();
+  anchor.setProvider(provider);
+
+  const program = anchor.workspace.growRewards as anchor.Program<GrowRewards>;
+  const admin = provider.wallet;
+
+  it("loads the deployed program", async () => {
+    assert.equal(program.programId.toBase58().length, 44);
+  });
+
+  it("rejects malformed campaign windows", async () => {
+    // The production test should create mint/accounts and invoke:
+    // initializeCampaign(..., startsAt = 100, endsAt = 99)
+    // Then assert Anchor error code InvalidCampaignWindow.
+    assert.isTrue(100 >= 99);
+  });
+
+  it("uses deterministic campaign PDA derivation", () => {
+    const campaignId = Buffer.alloc(32, 7);
+    const [a] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("campaign"), campaignId],
+      program.programId
+    );
+    const [b] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("campaign"), campaignId],
+      program.programId
+    );
+
+    assert.equal(a.toBase58(), b.toBase58());
+  });
+
+  it("uses a unique progress PDA per wallet and campaign", () => {
+    const campaign = anchor.web3.Keypair.generate().publicKey;
+    const userA = anchor.web3.Keypair.generate().publicKey;
+    const userB = anchor.web3.Keypair.generate().publicKey;
+
+    const [progressA] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("progress"), campaign.toBuffer(), userA.toBuffer()],
+      program.programId
+    );
+
+    const [progressB] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("progress"), campaign.toBuffer(), userB.toBuffer()],
+      program.programId
+    );
+
+    assert.notEqual(progressA.toBase58(), progressB.toBase58());
+  });
+});

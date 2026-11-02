@@ -1,0 +1,26 @@
+================================================================================
+                    OPERATIONAL RUNBOOK: GROW REWARDS ENGINE
+================================================================================
+
+1. ROUTINE MAINTENANCE:
+   - Check Vault Balance:
+     spl-token balance --address <VAULT_PDA_TOKEN_ACCOUNT>
+   - Top-up Vault:
+     grow-rewards-cli fund-vault --campaign-id <ID> --amount <UNITS>
+
+2. EMERGENCY PAUSE PROTOCOL:
+   If an exploit vector is identified in an upstream protocol milestone:
+   - Execute:
+     anchor run emergency-pause --campaign-id <ID>
+   - Verify event emission: CampaignPauseToggledEvent(is_paused = true)
+   - Transactions to 'execute_first_move' will reject with code 6003 (0x1773).
+
+3. SECURE RECOVERY (EMERGENCY WITHDRAWAL):
+   - Only the designated Squads Multi-Sig / Authority keypair can sign.
+   - Run:
+     anchor run emergency-withdraw --campaign-id <ID> --destination <RECOVERY_ATA>
+
+4. HEALTHCHECK & TELEMETRY MONITORING:
+   - Verify WebSocket heartbeats every 10 seconds.
+   - If log lag exceeds 128 slots, trigger container restart via Docker Compose.
+================================================================================

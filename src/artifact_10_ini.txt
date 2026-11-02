@@ -1,0 +1,13 @@
+# Solana Network Configuration
+SOLANA_RPC_URL=https://api.devnet.solana.com
+SOLANA_WS_URL=wss://api.devnet.solana.com
+PROGRAM_ID=GrowM1ve11111111111111111111111111111111111
+
+# Enterprise Resend API
+RESEND_API_KEY=re_123456789_abcdefghijklmnopqrstuvwxyz
+RESEND_SENDER=rewards@growmove.protocol
+TEST_NOTIFICATION_EMAIL=onboarding@solanadev.com
+
+# Webhook Alerting
+SLACK_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder

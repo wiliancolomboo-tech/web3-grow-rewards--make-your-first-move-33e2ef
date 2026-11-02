@@ -1,27 +1,25 @@
 {
-  "name": "@grow-rewards/orchestrator-cli",
+  "name": "grow-rewards-daemon",
   "version": "1.0.0",
-  "description": "Enterprise Agent and Automation Engine for Grow Rewards",
+  "description": "Production listener and enterprise automation daemon for Grow Rewards",
   "main": "dist/index.js",
-  "bin": {
-    "grow-agent": "./dist/index.js"
-  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "mocha -r ts-node/register 'tests/**/*.ts' --timeout 60000"
+    "dev": "ts-node src/index.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",
     "@solana/spl-token": "^0.4.8",
-    "@solana/web3.js": "^1.95.3",
-    "axios": "^1.7.7",
-    "commander": "^12.1.0",
+    "@solana/web3.js": "^1.95.2",
+    "axios": "^1.7.2",
     "dotenv": "^16.4.5",
-    "resend": "^4.0.0"
+    "resend": "^3.4.0",
+    "winston": "^3.13.0"
   },
   "devDependencies": {
-    "@types/node": "^22.5.4",
-    "typescript": "^5.6.2"
+    "@types/node": "^20.14.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.2"
   }
 }

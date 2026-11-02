@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  grow-rewards-daemon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: grow-rewards-worker
+    restart: always
+    environment:
+      - PORT=8080
+      - SOLANA_RPC_URL=https://api.devnet.solana.com
+      - SOLANA_WS_URL=wss://api.devnet.solana.com/
+      - PROGRAM_ID=GrwRew111111111111111111111111111111111111
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - ENTERPRISE_WEBHOOK_URL=${ENTERPRISE_WEBHOOK_URL}
+      - LOG_LEVEL=info
+    ports:
+      - "8080:8080"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"

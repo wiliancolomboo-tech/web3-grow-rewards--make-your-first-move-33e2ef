@@ -1,0 +1,9 @@
+{
+  "status": "healthy",
+  "service": "grow-rewards-daemon",
+  "solana_cluster": "devnet",
+  "program_id": "GrowRwds111111111111111111111111111111111111",
+  "vault_balance": "950000000",
+  "active_subscriptions": 1,
+  "uptime_seconds": 86420
+}

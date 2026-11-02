@@ -1,168 +1,144 @@
-import { Command } from "commander";
 import * as anchor from "@coral-xyz/anchor";
-import { PublicKey, Keypair, Connection, clusterApiUrl } from "@solana/web3.js";
-import { getAssociatedTokenAddressSync } from "@solana/spl-token";
-import { Resend } from "resend";
-import axios from "axios";
-import * as dotenv from "dotenv";
-import * as fs from "fs";
+import { Program } from "@coral-xyz/anchor";
+import {
+  PublicKey,
+  Keypair,
+  Transaction,
+  Ed25519Program,
+  SystemProgram,
+  SYSVAR_INSTRUCTIONS_PUBKEY,
+} from "@solana/web3.js";
+import {
+  TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  getAssociatedTokenAddressSync,
+} from "@solana/spl-token";
+import * as nacl from "tweetnacl";
 
-dotenv.config();
+export class GrowRewardsClient {
+  public program: Program;
+  public provider: anchor.AnchorProvider;
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY || "re_test_dummy_key_123456";
-const OPS_WEBHOOK_URL = process.env.OPS_WEBHOOK_URL || "";
-const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || clusterApiUrl("devnet");
-const PROGRAM_ID = new PublicKey(
-  process.env.PROGRAM_ID || "GrwRew1111111111111111111111111111111111111"
-);
-
-const resend = new Resend(RESEND_API_KEY);
-const programInterface = JSON.parse(
-  fs.readFileSync("./target/idl/grow_rewards.json", "utf8")
-);
-
-const program = new Command();
-
-program
-  .name("grow-agent")
-  .description("Turnkey Orchestration Agent for Grow Rewards")
-  .version("1.0.0");
-
-/**
- * Enterprise Notification Relayer
- */
-async function notifyEnterpriseChannels(params: {
-  userWallet: string;
-  userEmail?: string;
-  campaignId: string;
-  amountFormatted: string;
-  multiplier: string;
-  txHash: string;
-}) {
-  console.log(`[TELEMETRY] Dispatching events for user ${params.userWallet}...`);
-
-  // 1. Send Email Notification via Resend if email is attached
-  if (params.userEmail) {
-    try {
-      const emailResp = await resend.emails.send({
-        from: "Grow Rewards <rewards@grow-rewards.enterprise>",
-        to: [params.userEmail],
-        subject: "🎉 Your First Move Reward Has Been Credited on Solana!",
-        html: `
-          <div style="font-family: Arial, sans-serif; padding: 24px; color: #111;">
-            <h2>Congratulations! Your First Move is Verified.</h2>
-            <p>You have successfully unlocked your initial protocol activation reward.</p>
-            <ul>
-              <li><strong>Reward Accrued:</strong> ${params.amountFormatted} SPL Tokens</li>
-              <li><strong>Early Mover Multiplier:</strong> ${params.multiplier}</li>
-              <li><strong>Solana Transaction:</strong> <a href="https://solscan.io/tx/${params.txHash}?cluster=devnet">${params.txHash}</a></li>
-            </ul>
-            <p>Keep growing your position to unlock tier-2 engagement rewards.</p>
-          </div>
-        `,
-      });
-      console.log(`[RESEND SUCCESS] Sent notification ID: ${emailResp.data?.id}`);
-    } catch (err: any) {
-      console.error(`[RESEND FAILURE] Failed to send email: ${err.message}`);
-    }
+  constructor(program: Program, provider: anchor.AnchorProvider) {
+    this.program = program;
+    this.provider = provider;
   }
 
-  // 2. Dispatch Slack / Discord Webhook Telemetry
-  if (OPS_WEBHOOK_URL) {
-    try {
-      await axios.post(OPS_WEBHOOK_URL, {
-        content: `🚀 **First Move Claimed!**\n- **User:** \`${params.userWallet}\`\n- **Campaign:** #${params.campaignId}\n- **Payout:** ${params.amountFormatted} (Multiplier: ${params.multiplier})\n- **Explorer:** https://solscan.io/tx/${params.txHash}`,
-      });
-      console.log(`[WEBHOOK SUCCESS] Dispatched to Ops channel.`);
-    } catch (err: any) {
-      console.error(`[WEBHOOK FAILURE] Failed webhook delivery: ${err.message}`);
-    }
+  public getCampaignPDA(campaignId: string): [PublicKey, number] {
+    return PublicKey.findProgramAddressSync(
+      [Buffer.from("campaign"), Buffer.from(campaignId)],
+      this.program.programId
+    );
+  }
+
+  public getVaultPDA(campaignId: string): [PublicKey, number] {
+    return PublicKey.findProgramAddressSync(
+      [Buffer.from("reward_vault"), Buffer.from(campaignId)],
+      this.program.programId
+    );
+  }
+
+  public getUserRecordPDA(campaignId: string, userPubkey: PublicKey): [PublicKey, number] {
+    return PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("user_record"),
+        Buffer.from(campaignId),
+        userPubkey.toBuffer(),
+      ],
+      this.program.programId
+    );
+  }
+
+  /**
+   * Generates ed25519 signature for first move verification.
+   */
+  public static signAttestation(
+    attestationAuthority: Keypair,
+    userPubkey: PublicKey,
+    campaignId: string,
+    actionType: number,
+    nonce: bigint
+  ): { signature: Uint8Array; message: Uint8Array } {
+    const campaignBuffer = Buffer.alloc(32);
+    Buffer.from(campaignId).copy(campaignBuffer, 0, 0, 32);
+
+    const nonceBuffer = Buffer.alloc(8);
+    nonceBuffer.writeBigUInt64LE(nonce);
+
+    const message = Buffer.concat([
+      userPubkey.toBuffer(),
+      campaignBuffer,
+      Buffer.from([actionType]),
+      nonceBuffer,
+    ]);
+
+    const signature = nacl.sign.detached(message, attestationAuthority.secretKey);
+    return { signature, message };
+  }
+
+  /**
+   * Builds an atomic transaction containing the Ed25519 verification instruction
+   * and the claim_first_move program call.
+   */
+  public async createClaimFirstMoveTx(params: {
+    user: PublicKey;
+    campaignId: string;
+    rewardMint: PublicKey;
+    actionType: number;
+    nonce: bigint;
+    attestationAuthorityPubkey: PublicKey;
+    signature: Uint8Array;
+  }): Promise<Transaction> {
+    const campaignBuffer = Buffer.alloc(32);
+    Buffer.from(params.campaignId).copy(campaignBuffer, 0, 0, 32);
+
+    const nonceBuffer = Buffer.alloc(8);
+    nonceBuffer.writeBigUInt64LE(params.nonce);
+
+    const message = Buffer.concat([
+      params.user.toBuffer(),
+      campaignBuffer,
+      Buffer.from([params.actionType]),
+      nonceBuffer,
+    ]);
+
+    // 1. Build Ed25519 Program Instruction
+    const ed25519Instruction = Ed25519Program.createInstructionWithPublicKey({
+      publicKey: params.attestationAuthorityPubkey.toBytes(),
+      message: message,
+      signature: params.signature,
+    });
+
+    const [campaignPDA] = this.getCampaignPDA(params.campaignId);
+    const [vaultPDA] = this.getVaultPDA(params.campaignId);
+    const [userRecordPDA] = this.getUserRecordPDA(params.campaignId, params.user);
+    const userAta = getAssociatedTokenAddressSync(params.rewardMint, params.user);
+
+    // 2. Build Claim Instruction
+    const claimInstruction = await this.program.methods
+      .claimFirstMove(
+        params.actionType,
+        new anchor.BN(params.nonce.toString()),
+        Array.from(params.signature)
+      )
+      .accounts({
+        user: params.user,
+        campaign: campaignPDA,
+        userRecord: userRecordPDA,
+        rewardVault: vaultPDA,
+        userTokenAccount: userAta,
+        rewardMint: params.rewardMint,
+        ixSysvar: SYSVAR_INSTRUCTIONS_PUBKEY,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+      })
+      .instruction();
+
+    const tx = new Transaction();
+    tx.add(ed25519Instruction);
+    tx.add(claimInstruction);
+    return tx;
   }
 }
-
-/**
- * Command: Process and verify first move claim
- */
-program
-  .command("execute-claim")
-  .description("Process an attestation and claim the reward on-chain")
-  .requiredOption("--campaign-id <number>", "Campaign identifier")
-  .requiredOption("--user-keypair <path>", "Path to user private key JSON")
-  .requiredOption("--verifier-keypair <path>", "Path to verifier private key JSON")
-  .requiredOption("--reward-mint <pubkey>", "Mint address of the reward token")
-  .option("--user-email <email>", "Optional user email for Resend attribution")
-  .action(async (options) => {
-    try {
-      const connection = new Connection(SOLANA_RPC_URL, "confirmed");
-      const userKeypair = Keypair.fromSecretKey(
-        new Uint8Array(JSON.parse(fs.readFileSync(options.userKeypair, "utf8")))
-      );
-      const verifierKeypair = Keypair.fromSecretKey(
-        new Uint8Array(JSON.parse(fs.readFileSync(options.verifierKeypair, "utf8")))
-      );
-      const campaignId = new anchor.BN(options.campaignId);
-      const rewardMint = new PublicKey(options.rewardMint);
-
-      const wallet = new anchor.Wallet(userKeypair);
-      const provider = new anchor.AnchorProvider(connection, wallet, {
-        commitment: "confirmed",
-      });
-      const anchorProgram = new anchor.Program(programInterface, PROGRAM_ID, provider);
-
-      // Derive Program PDAs
-      const [campaignPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("grow_campaign"), campaignId.toArrayLike(Buffer, "le", 8)],
-        PROGRAM_ID
-      );
-      const [rewardVaultPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("reward_vault"), campaignId.toArrayLike(Buffer, "le", 8)],
-        PROGRAM_ID
-      );
-      const [userTrackerPda] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("user_tracker"),
-          campaignId.toArrayLike(Buffer, "le", 8),
-          userKeypair.publicKey.toBuffer(),
-        ],
-        PROGRAM_ID
-      );
-
-      const userAta = getAssociatedTokenAddressSync(rewardMint, userKeypair.publicKey);
-      const timestamp = Math.floor(Date.now() / 1000);
-      const dummyActionSig = new Uint8Array(64).fill(7); // Synthetic attestation payload
-
-      console.log(`[ORCHESTRATOR] Submitting claim for ${userKeypair.publicKey.toBase58()}...`);
-
-      const tx = await anchorProgram.methods
-        .claimFirstMove(Array.from(dummyActionSig), new anchor.BN(timestamp))
-        .accounts({
-          user: userKeypair.publicKey,
-          verifierAuthority: verifierKeypair.publicKey,
-          campaign: campaignPda,
-          userTracker: userTrackerPda,
-          rewardVault: rewardVaultPda,
-          userRewardAccount: userAta,
-          systemProgram: anchor.web3.SystemProgram.programId,
-          tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-        })
-        .signers([userKeypair, verifierKeypair])
-        .rpc();
-
-      console.log(`[TRANSACTION CONFIRMED] TX ID: ${tx}`);
-
-      // Dispatch real-time enterprise webhooks
-      await notifyEnterpriseChannels({
-        userWallet: userKeypair.publicKey.toBase58(),
-        userEmail: options.userEmail,
-        campaignId: options.campaignId,
-        amountFormatted: "100.00 GROW",
-        multiplier: "2.5x Early Bird",
-        txHash: tx,
-      });
-    } catch (err: any) {
-      console.error(`[EXECUTION FAILED] Error:`, err);
-      process.exit(1);
-    }
-  });
-
-program.parse(process.argv);

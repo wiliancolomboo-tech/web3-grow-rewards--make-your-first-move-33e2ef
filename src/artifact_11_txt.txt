@@ -1,0 +1,1 @@
+[User First Move] ➔ [Anchor Vault CPI] ➔ [Receipt PDA Minted] ➔ [Resend Email Sent]

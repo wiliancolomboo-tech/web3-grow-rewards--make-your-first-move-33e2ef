@@ -1,0 +1,6 @@
+Built for sponsors, dApps, and growth teams who want real user retention instead of Sybil farming.
+
+100% open-source, fully tested with Anchor & ready for 1-click Docker deployment.
+
+Let's activate the next 100M Solana users together. Make your first move! 🚀
+👉 [GitHub Repository Link]

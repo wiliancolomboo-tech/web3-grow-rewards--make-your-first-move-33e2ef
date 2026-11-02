@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  solgrow-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: solgrow-firstmove-agent
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - SOLANA_RPC_URL=https://api.devnet.solana.com
+      - ATTESTOR_PRIVATE_KEY=[174,47,154,231,102,121,241,192,254,42,130,121,55,108,125,188,141,107,178,39,159,195,58,111,41,208,61,120,183,19,101,16,104,15,8,131,88,38,206,192,109,240,43,156,128,146,125,184,103,184,142,217,148,82,60,188,77,225,123,253,192,84,15,44]
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -1,0 +1,17 @@
+1/4 🚀 Introducing "Grow Rewards: Make Your First Move" on @Solana!
+
+Onboarding drop-off is the silent killer of Web3 protocols. We built an end-to-end programmatic milestone protocol that cryptographically verifies a user’s first on-chain move & disburses instant rewards. Zero sybils. Zero downtime. 🧵👇
+
+2/4 🛡️ How it works:
+1️⃣ User performs first action (Swap, Stake, or Mint)
+2️⃣ Off-chain agent verifies block finality & produces an Ed25519 attestation
+3️⃣ Anchor program enforces single-claim PDA invariants & releases vault tokens
+4️⃣ Enterprise webhook pushes Resend receipt + Slack ops alerts in <1 sec!
+
+3/4 ⚡ Built for enterprise scale:
+• 100% test coverage with negative attack matrices
+• Reentrancy and double-claim replay protection
+• Full turnkey Docker orchestration + telemetry ready for production
+
+Check out our submission repo & deploy your first campaign in 60s! 🌐🔥
+#Solana #SolanaDev #Anchor #GrowRewards #Web3UX

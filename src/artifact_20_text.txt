@@ -1,0 +1,1 @@
+treasury_balance < expected_daily_claims × reward_amount × safety_days

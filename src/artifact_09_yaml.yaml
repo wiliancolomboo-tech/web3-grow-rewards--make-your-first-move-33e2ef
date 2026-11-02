@@ -1,15 +1,28 @@
-version: "3.8"
+version: '3.8'
 
 services:
-  grow-agent:
-    build: .
-    container_name: grow-rewards-agent
-    restart: unless-stopped
+  grow-engine-indexer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: grow_engine_daemon
+    restart: always
     environment:
-      - SOLANA_RPC_URL=https://api.devnet.solana.com
-      - PROGRAM_ID=GrwRew1111111111111111111111111111111111111
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL}
+      - PROGRAM_ID=${PROGRAM_ID}
       - RESEND_API_KEY=${RESEND_API_KEY}
-      - OPS_WEBHOOK_URL=${OPS_WEBHOOK_URL}
-    volumes:
-      - ./keys:/usr/src/app/keys:ro
-    command: ["--help"]
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - PORT=8080
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"

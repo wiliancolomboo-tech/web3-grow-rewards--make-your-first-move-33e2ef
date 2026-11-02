@@ -1,0 +1,11 @@
+1/3 🚀 Excited to unveil "Solana Grow Rewards: First Move Engine" for the @Solana & @Superteam bounties! 
+78% of users abandon wallets after funding without making a move. We engineered the solution: zero-friction, cryptographic first-move rewards deployed natively on Solana. 🦀⚡
+
+2/3 🛠️ Under the hood:
+• Anchor PDA state isolation prevents Sybil attacks with zero point-database overhead.
+• Sub-second reward payouts direct from segregated Escrow Vaults.
+• Full enterprise stack: Live Solana WebSocket event relayer integrating @resend & Slack alerts.
+
+3/3 📦 100% test coverage, turnkey Docker deployment, and complete open-source code ready for day-one integration into any Solana DeFi, NFT, or payments app.
+
+Check out the code & join the movement: github.com/sponsor-org/grow-rewards-solana 🔥

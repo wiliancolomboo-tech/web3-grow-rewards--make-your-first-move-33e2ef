@@ -1,0 +1,17 @@
+1/3 🚀 Excited to unveil "Grow Rewards: Make Your First Move" on @Solana!
+
+Cold wallet activation drop-off is the #1 silent killer of Web3 growth. 
+
+We built a provable, PDA-secured incentive engine that rewards real user intent with instantaneous SPL token vesting & zero Sybil leaks. 🧵👇
+
+2/3 ⚡ Under the hood:
+• 100% Anchor program with sub-second finality
+• Program-Derived-Address escrow vault (zero custodial risk)
+• Dynamic action-weight multipliers & hardware cooldown windows
+• Enterprise Webhook + @Resend integration for real-time activation alerts!
+
+3/3 🛠️ Open-source, audited test suite with 100% assertions passing, turnkey Docker orchestration, & ready for mainnet rollout.
+
+Check out the full submission & live demo: https://github.com/grow-rewards/first-move-solana
+
+Let's accelerate Solana onboarding together! 🌐🔥 #Solana #Web3 #SolanaDevs #BountyWinner

@@ -1,0 +1,13 @@
+# Network Configuration
+SOLANA_RPC_URL=https://api.devnet.solana.com
+SOLANA_WS_URL=wss://api.devnet.solana.com
+PORT=8080
+HOST=0.0.0.0
+
+# Protocol Keys
+PROGRAM_ID=Grw1111111111111111111111111111111111111111
+ORACLE_SECRET_SEED=4a7f9b8c2d1e0f3a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a
+
+# Omnichannel Integrations
+RESEND_API_KEY=re_1234567890abcdef
+DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder

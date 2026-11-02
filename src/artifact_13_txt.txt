@@ -1,0 +1,9 @@
+services/daemon/
+├── package.json
+├── tsconfig.json
+├── src/
+│   ├── config.ts
+│   ├── indexer.ts
+│   ├── notifier.ts
+│   └── server.ts
+└── .env.example

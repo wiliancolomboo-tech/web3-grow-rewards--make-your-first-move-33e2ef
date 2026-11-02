@@ -1,0 +1,8 @@
+client/
+├── package.json
+├── tsconfig.json
+├── .env.example
+└── src/
+    ├── agent.ts
+    ├── notifier.ts
+    └── attestation.ts

@@ -1,0 +1,34 @@
+version: "3.8"
+
+services:
+  solana-test-validator:
+    image: solanalabs/solana:v1.18.18
+    container_name: solana-localnet
+    command: >
+      solana-test-validator
+      --reset
+      --bind-address 0.0.0.0
+      --rpc-port 8899
+    ports:
+      - "8899:8899"
+      - "8900:8900"
+    healthcheck:
+      test: ["CMD", "solana", "cluster-version", "--url", "http://127.0.0.1:8899"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+
+  grow-rewards-daemon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: grow-rewards-daemon
+    environment:
+      - SOLANA_RPC_URL=http://solana-test-validator:8899
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - VERIFIER_PRIVATE_KEY=${VERIFIER_PRIVATE_KEY}
+    depends_on:
+      solana-test-validator:
+        condition: service_healthy
+    restart: always

@@ -1,0 +1,26 @@
+================================================================================
+                     GROW REWARDS OPERATIONAL RUNBOOK
+================================================================================
+
+1. INCIDENT: ESCROW VAULT DEPLETION
+   - Symptoms: Worker logs "GrowError::InsufficientVaultLiquidity (0x1775)".
+   - Action: 
+     a. Transfer new SPL tokens to PDA vault:
+        spl-token transfer <MINT> <AMOUNT> <VAULT_PDA_ADDRESS> --fund-recipient
+     b. Verify escrow balance:
+        spl-token balance --address <VAULT_PDA_ADDRESS>
+
+2. INCIDENT: ORACLE KEY COMPROMISE
+   - Symptoms: Suspicious voucher signatures detected in logs.
+   - Action:
+     a. Trigger emergency pause:
+        ts-node scripts/admin.ts --action pause --pool "first-move-2025"
+     b. Rotate oracle keypair:
+        ts-node scripts/admin.ts --action update-oracle --new-oracle <NEW_PUBKEY>
+     c. Unpause pool:
+        ts-node scripts/admin.ts --action unpause --pool "first-move-2025"
+
+3. PROMETHEUS / GRAFANA TELEMETRY ENDPOINTS
+   - GET /healthz: Worker socket connection and block lag index.
+   - GET /metrics: Disbursed rewards sum, Sybil rejection counter, and RPC latency.
+================================================================================

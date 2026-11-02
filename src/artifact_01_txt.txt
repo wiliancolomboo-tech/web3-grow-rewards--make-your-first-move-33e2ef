@@ -1,3 +1,6 @@
-[User Connects] ──► [Executes Qualified Action] ──► [Ed25519 Proof / CPI Verification] ──► [Instant SPL Payout + Multiplier]
-                                                                                                  │
-                                                                                    [Enterprise Webhook / Resend CRM]
++--------------------------------------------------------------------------------------------------+
+|                                    GROW REWARDS KPI METRICS                                      |
++--------------------+-----------------------+---------------------+-------------------------------+
+| First-Move Cost    | Verification Latency  | Sybil Resistance    | Enterprise Ops Integration    |
+| < $0.00085 / Claim | ~400ms (1 Block)      | 100% Cryptographic  | Resend Email + Slack/Discord  |
++--------------------+-----------------------+---------------------+-------------------------------+

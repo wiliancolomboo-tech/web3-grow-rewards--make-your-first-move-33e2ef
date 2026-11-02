@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  grow-rewards-relayer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: solana-grow-rewards-agent
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      - PROGRAM_ID=${PROGRAM_ID}
+      - ATTESTATION_SIGNER_SECRET=${ATTESTATION_SIGNER_SECRET}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"

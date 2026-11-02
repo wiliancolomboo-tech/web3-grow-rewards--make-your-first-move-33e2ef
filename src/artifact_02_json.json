@@ -1,0 +1,9 @@
+{
+  "event": "FirstMoveCompleted",
+  "recipient": "9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin",
+  "amount": 25000000,
+  "actionType": "FirstLiquidityProvision",
+  "streakMultiplierBps": 12000,
+  "timestamp": 1716301200,
+  "txSignature": "4vJ9JU1b..."
+}

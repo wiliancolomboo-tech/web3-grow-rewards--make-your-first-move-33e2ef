@@ -1,0 +1,27 @@
+🧵 1/3
+Thrilled to introduce the Grow Rewards Engine: "Make Your First Move"! 🚀
+
+Onboarding drop-off and Sybil attacks drain reward pools and kill user momentum. We built an enterprise-ready, zero-compromise milestone reward system native to @solana. 
+
+Here is how we turn first moves into long-term users ⚡️👇
+
+---
+
+🧵 2/3
+Under the hood:
+🔒 PDA-custodied reward vaults with atomic claim settlement
+✍️ Cryptographic Ed25519 oracle attestations preventing replay attacks
+📧 Instant transactional Web3 receipts powered by @resend & Discord/Slack webhooks
+⚡️ Sub-400ms finality with full SPL & Token-2022 compatibility!
+
+No bot drains. Zero claim latency.
+
+---
+
+🧵 3/3
+The entire stack is open-source, battle-tested with 100% test coverage, and turnkey dockerized for instant deployment.
+
+Ready to reward your ecosystem's builders and users from day one.
+
+Check out the code, run the suite, and make your first move:
+👉 https://github.com/sponsor-org/grow-rewards-engine

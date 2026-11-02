@@ -1,0 +1,32 @@
+# Multi-stage build for Lean Enterprise Daemon Container
+FROM node:20-alpine AS builder
+
+WORKDIR /usr/src/app
+
+COPY client/package*.json ./
+COPY client/tsconfig.json ./
+RUN npm ci
+
+COPY client/src ./src
+RUN npm run build
+
+# Production Runner
+FROM node:20-alpine AS runner
+
+WORKDIR /usr/src/app
+ENV NODE_ENV=production
+
+COPY client/package*.json ./
+RUN npm ci --only=production
+
+COPY --from=builder /usr/src/app/dist ./dist
+
+# Non-root security best-practice
+USER node
+
+EXPOSE 9108
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost:9108/healthz || exit 1
+
+CMD ["node", "dist/worker.js"]

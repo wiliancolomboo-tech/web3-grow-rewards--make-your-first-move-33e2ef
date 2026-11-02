@@ -1,0 +1,10 @@
++----------------------------------------------------+--------------------------+---------------------+
+| Test Case Identifier                               | Security Invariant Check | Expected Result     |
++----------------------------------------------------+--------------------------+---------------------+
+| TC-01: Initialize Valid Campaign                   | State Setup & Rent Check | Success (200 OK)    |
+| TC-02: Claim First Move Reward (Standard Flow)     | Single Action Mint CPI   | Success (Balance +) |
+| TC-03: Double-Claim Prevention (Sybil Re-entrancy) | PDA Uniqueness Guard     | ErrorCode 6008      |
+| TC-04: Unauthorized Pause Action                   | Admin Signer Check       | ErrorCode 6012      |
+| TC-05: Post-Expiry Claim Defense                   | Temporal Epoch Check     | ErrorCode 6005      |
+| TC-06: Admin Clawback Solvency Check               | Vault Drainage Logic     | Balance Transferred |
++----------------------------------------------------+--------------------------+---------------------+

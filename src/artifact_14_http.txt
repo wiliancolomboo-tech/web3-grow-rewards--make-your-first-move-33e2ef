@@ -1,0 +1,13 @@
+GET /health HTTP/1.1
+Host: localhost:8080
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "status": "HEALTHY",
+  "program_id": "Grow111111111111111111111111111111111111111",
+  "subscribers_active": 1,
+  "uptime_seconds": 86420,
+  "cluster": "devnet"
+}

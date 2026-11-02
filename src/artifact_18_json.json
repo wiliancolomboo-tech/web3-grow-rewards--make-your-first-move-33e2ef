@@ -1,0 +1,9 @@
+// GET /health
+{
+  "status": "healthy",
+  "programId": "GrowRwds11111111111111111111111111111111111",
+  "oraclePublicKey": "OraCLERwd111111111111111111111111111111111",
+  "solanaSlotHeight": 289410293,
+  "resendApiStatus": "operational",
+  "pendingSettlements": 0
+}

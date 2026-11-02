@@ -1,0 +1,7 @@
+# HELP grow_rewards_active_campaigns Number of active campaigns
+  # TYPE grow_rewards_active_campaigns gauge
+  grow_rewards_active_campaigns 1
+  # HELP grow_rewards_milestone_counter Total milestones processed
+  # TYPE grow_rewards_milestone_counter counter
+  grow_rewards_milestone_counter{level="1"} 1420
+  grow_rewards_milestone_counter{level="2"} 890

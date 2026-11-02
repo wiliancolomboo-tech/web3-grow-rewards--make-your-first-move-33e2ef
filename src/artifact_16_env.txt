@@ -1,0 +1,8 @@
+# Solana Network Configuration
+SOLANA_RPC_URL=https://api.devnet.solana.com
+PROGRAM_ID=GrowRwds111111111111111111111111111111111111
+
+# Enterprise Dispatch Providers
+RESEND_API_KEY=re_123456789abcdef
+SLACK_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+OPERATIONS_ALERT_EMAIL=growth-alerts@protocol.io

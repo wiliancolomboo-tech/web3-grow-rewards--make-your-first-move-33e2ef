@@ -1,0 +1,13 @@
+# Solana Network Settings
+SOLANA_RPC_URL=https://api.devnet.solana.com
+SOLANA_WSS_URL=wss://api.devnet.solana.com
+PROGRAM_ID=Grow111111111111111111111111111111111111111
+
+# Authority Keypairs (JSON format filepaths)
+USER_KEYPAIR_PATH=./keys/user-keypair.json
+ATTESTATION_KEYPAIR_PATH=./keys/attestation-keypair.json
+
+# Enterprise Integrations
+RESEND_API_KEY=re_123456789_abcdefghijklmnopqrstuv
+SLACK_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+DEMO_USER_EMAIL=rewards-monitor@enterprise.com

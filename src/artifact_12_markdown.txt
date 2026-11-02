@@ -1,0 +1,12 @@
+1/3 🚀 Excited to unveil Grow Rewards: "Make Your First Move"! 
+
+The cold-start problem is solved: We built an enterprise-grade onboarding & milestone incentive protocol on @solana that mathematically rewards users the second they make their first on-chain move. 🧵👇
+
+2/3 🛠️ The Tech:
+🔒 Deterministic Anchor PDA receipts preventing Sybil replays
+⚡ Instant sub-second token payout straight from non-custodial escrow vaults
+📬 Real-time transactional emails via @resend + Discord enterprise alerts on every confirmed action!
+
+3/3 📦 Turnkey, audited architecture: 100% test coverage, production-ready Rust contracts, Dockerized microservices, and 1-click sponsor handover.
+
+Check out the full open-source repo & make your first move on Solana today! 🌐💥 #Solana #SolanaEcosystem #Web3Dev

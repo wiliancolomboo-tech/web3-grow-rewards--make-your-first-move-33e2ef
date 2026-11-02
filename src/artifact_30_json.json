@@ -1,0 +1,7 @@
+{
+    "status": "healthy",
+    "uptime": 43200,
+    "processedEvents": 1420,
+    "solanaCluster": "https://api.devnet.solana.com",
+    "programId": "GrowRwds11111111111111111111111111111111111"
+  }

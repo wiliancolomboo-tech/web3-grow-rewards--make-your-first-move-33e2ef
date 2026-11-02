@@ -1,0 +1,62 @@
+const required = (name: string): string => {
+  const value = process.env[name];
+  if (!value) throw new Error(`Missing environment variable: ${name}`);
+  return value;
+};
+
+export async function sendResendEmail(
+  to: string,
+  subject: string,
+  html: string
+): Promise<void> {
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${required("RESEND_API_KEY")}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      from: required("RESEND_FROM"),
+      to: [to],
+      subject,
+      html
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Resend failed: ${response.status} ${await response.text()}`);
+  }
+}
+
+export async function sendSlack(text: string): Promise<void> {
+  const url = process.env.SLACK_WEBHOOK_URL;
+  if (!url) return;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Slack failed: ${response.status}`);
+  }
+}
+
+export async function sendSponsorWebhook(payload: unknown): Promise<void> {
+  const url = process.env.SPONSOR_WEBHOOK_URL;
+  if (!url) return;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Grow-Rewards-Signature": process.env.SPONSOR_WEBHOOK_SECRET ?? ""
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Sponsor webhook failed: ${response.status}`);
+  }
+}

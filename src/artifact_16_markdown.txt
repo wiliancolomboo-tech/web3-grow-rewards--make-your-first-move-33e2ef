@@ -1,0 +1,21 @@
+🧵 1/3
+Excited to unveil our submission for the @Solana Grow Rewards Hackathon: "Make Your First Move"! 🚀
+
+Onboarding users shouldn't mean draining your treasury to bot farms. We engineered an institutional-grade, sybil-resilient rewards engine built natively on Anchor v0.30.
+
+Here is how we turn first-time users into retained liquidity 👇
+
+🧵 2/3
+Under the hood of GrowRewards:
+⚡ Deterministic PDA State: Zero double-claims via deterministic `[user_reward, user_pubkey]` seeds.
+🛡️ Secure PDA Vault: 100% token custodial isolation with zero private key leak risk.
+📬 Turnkey Webhook Mesh: Instant automated transactional emails via @resend & live operational telemetry to Discord!
+
+🧵 3/3
+Complete with:
+✅ 100% Rust & Anchor test coverage with deterministic edge-case checks
+✅ Production TypeScript Worker & CLI
+✅ Turnkey Dockerized infrastructure ready for mainnet
+
+Check out our full open-source repo & make your first move today! 🔥
+#Solana #Anchor #Web3Growth #Bounty

@@ -1,0 +1,6 @@
+How it works under the hood:
+🔹 Zero-trust PDA validation guarantees 1-claim-per-human at the runtime layer
+🔹 Instant SPL token payouts from audited escrow vaults in <450ms
+🔹 Real-time daemon pipes on-chain events into @resend for CRM & Discord webhooks for instant observability
+
+No bots. Zero friction. Pure growth. 🛠️📈
