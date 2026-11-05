@@ -4,7 +4,7 @@ SOLANA_WS_URL=wss://api.devnet.solana.com
 PROGRAM_ID=GrowM1ve11111111111111111111111111111111111
 
 # Enterprise Resend API
-RESEND_API_KEY=re_123456789_abcdefghijklmnopqrstuvwxyz
+RESEND_API_KEY=re_test_000000000000000000000000
 RESEND_SENDER=rewards@growmove.protocol
 TEST_NOTIFICATION_EMAIL=onboarding@solanadev.com
 

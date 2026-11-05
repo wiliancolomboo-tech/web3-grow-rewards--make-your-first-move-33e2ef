@@ -400,7 +400,7 @@ pub fn verify_ed25519_signature(
     // num_signatures: u8 (offset 0)
     // padding: u8 (offset 1)
     // signature_offset: u16 (offset 2)
-    // signature_instruction_index: u16 (offset 4)
+    // signature_test_000000000000000000000000: u16 (offset 4)
     // public_key_offset: u16 (offset 6)
     // public_key_instruction_index: u16 (offset 8)
     // message_data_offset: u16 (offset 10)

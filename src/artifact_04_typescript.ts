@@ -23,7 +23,7 @@ const config: DaemonConfig = {
   rpcUrl: process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com",
   wsUrl: process.env.SOLANA_WS_URL || "wss://api.devnet.solana.com",
   programId: process.env.PROGRAM_ID || "GrowRew111111111111111111111111111111111111",
-  resendApiKey: process.env.RESEND_API_KEY || "re_test_mock_key_12345",
+  resendApiKey: process.env.RESEND_API_KEY || "re_test_000000000000000000000000",
   discordWebhookUrl: process.env.DISCORD_WEBHOOK_URL || "",
   notificationFromEmail: process.env.NOTIFICATION_FROM_EMAIL || "rewards@grow.solana.domain",
   alertRecipientEmail: process.env.ALERT_RECIPIENT_EMAIL || "founder@growprotocol.io",

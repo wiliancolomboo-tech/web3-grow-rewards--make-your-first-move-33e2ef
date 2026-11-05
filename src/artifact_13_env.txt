@@ -8,6 +8,6 @@ USER_KEYPAIR_PATH=./keys/user-keypair.json
 ATTESTATION_KEYPAIR_PATH=./keys/attestation-keypair.json
 
 # Enterprise Integrations
-RESEND_API_KEY=re_123456789_abcdefghijklmnopqrstuv
+RESEND_API_KEY=re_test_000000000000000000000000
 SLACK_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
 DEMO_USER_EMAIL=rewards-monitor@enterprise.com

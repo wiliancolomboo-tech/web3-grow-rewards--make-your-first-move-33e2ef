@@ -19,7 +19,7 @@ const WS_ENDPOINT = process.env.SOLANA_WS_URL || "wss://api.devnet.solana.com";
 const PROGRAM_ID = new PublicKey(
   process.env.PROGRAM_ID || "GrowRew111111111111111111111111111111111111"
 );
-const RESEND_API_KEY = process.env.RESEND_API_KEY || "re_test_dummy_key";
+const RESEND_API_KEY = process.env.RESEND_API_KEY || "re_test_000000000000000000000000";
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || "";
 const ORACLE_SECRET = process.env.ORACLE_PRIVATE_KEY_JSON || "[]";
 
